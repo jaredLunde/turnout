@@ -1,0 +1,43 @@
+[tools]
+dprint = "latest"
+go = "1.25"
+"go:golang.org/x/tools/cmd/deadcode" = "latest"
+staticcheck = "latest"
+yamlfmt = "latest"
+
+[tasks.format]
+run = ["dprint fmt"]
+
+[tasks.lint]
+description = "Run all linting checks"
+depends = ["lint:*"]
+
+[tasks."lint:format"]
+run = ["dprint check"]
+
+[tasks."lint:vet"]
+description = "Run staticcheck and go vet"
+run = ["staticcheck ./...", "go vet ./..."]
+
+[tasks."lint:deadcode"]
+description = "Check for dead code (ignoring exported functions)"
+run = [
+  "deadcode -test ./... | grep -v -E 'unreachable func: (High|Multi|Parse|With)' || true",
+]
+
+[tasks.test]
+description = "Run tests with race detection"
+run = ["go test -v ./... -race -shuffle=on -timeout=2m -count=2"]
+
+[tasks.dev]
+description = "Run turnout against test fixtures for development"
+run = [
+  "go build -o bin/turnout .",
+  "./bin/turnout testdata/fixtures/simple-web-app",
+  "echo '---'",
+  "./bin/turnout testdata/fixtures/monorepo"
+]
+
+[tasks.build]
+description = "Build turnout binary"
+run = ["go build -o bin/turnout ."]

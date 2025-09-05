@@ -1,0 +1,19 @@
+{
+  "format_on_save": "on",
+  "formatter": {
+    "external": {
+      "command": "dprint",
+      "arguments": ["fmt", "--stdin", "{buffer_path}"]
+    }
+  },
+  "lsp": {
+    "gopls": {
+      "settings": {
+        "gopls": {
+          "staticcheck": true
+        }
+      }
+    }
+  },
+  "file_scan_exclusions": ["**/.git/**"]
+}
