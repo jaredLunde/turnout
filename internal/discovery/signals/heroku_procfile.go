@@ -3,27 +3,32 @@ package signals
 import (
 	"bufio"
 	"context"
-	"os"
 	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
 	"github.com/railwayapp/turnout/internal/utils/fs"
 )
 
-type HerokuProcfileSignal struct{}
+type HerokuProcfileSignal struct {
+	filesystem fs.FileSystem
+}
+
+func NewHerokuProcfileSignal(filesystem fs.FileSystem) *HerokuProcfileSignal {
+	return &HerokuProcfileSignal{filesystem: filesystem}
+}
 
 func (h *HerokuProcfileSignal) Confidence() int {
 	return 85 // High confidence - Procfiles define explicit process types
 }
 
-func (h *HerokuProcfileSignal) Discover(ctx context.Context, rootPath string) ([]types.Service, error) {
+func (h *HerokuProcfileSignal) Discover(ctx context.Context, rootPath string, dirEntries []fs.DirEntry) ([]types.Service, error) {
 	// Look for Procfile
-	configPath, err := fs.FindFile(rootPath, "Procfile")
+	configPath, err := fs.FindFileInEntries(h.filesystem, rootPath, "Procfile", dirEntries)
 	if err != nil || configPath == "" {
 		return nil, err
 	}
 
-	processes, err := parseProcfile(configPath)
+	processes, err := h.parseProcfile(configPath)
 	if err != nil {
 		return nil, err
 	}
@@ -46,15 +51,14 @@ func (h *HerokuProcfileSignal) Discover(ctx context.Context, rootPath string) ([
 	return services, nil
 }
 
-func parseProcfile(configPath string) (map[string]string, error) {
-	file, err := os.Open(configPath)
+func (h *HerokuProcfileSignal) parseProcfile(configPath string) (map[string]string, error) {
+	content, err := h.filesystem.ReadFile(configPath)
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
 
 	processes := make(map[string]string)
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(strings.NewReader(string(content)))
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())

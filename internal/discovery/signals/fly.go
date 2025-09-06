@@ -8,27 +8,33 @@ import (
 	"github.com/railwayapp/turnout/internal/utils/fs"
 )
 
-type FlySignal struct{}
+type FlySignal struct {
+	filesystem fs.FileSystem
+}
+
+func NewFlySignal(filesystem fs.FileSystem) *FlySignal {
+	return &FlySignal{filesystem: filesystem}
+}
 
 func (f *FlySignal) Confidence() int {
 	return 95 // Highest confidence - Fly configs are explicit production deployment specs
 }
 
-func (f *FlySignal) Discover(ctx context.Context, rootPath string) ([]types.Service, error) {
+func (f *FlySignal) Discover(ctx context.Context, rootPath string, dirEntries []fs.DirEntry) ([]types.Service, error) {
 	// Look for fly.toml
-	configPath, err := fs.FindFile(rootPath, "fly.toml")
+	configPath, err := fs.FindFileInEntries(f.filesystem, rootPath, "fly.toml", dirEntries)
 	if err != nil || configPath == "" {
 		return nil, err
 	}
 
-	config, err := parseFlyConfig(configPath)
+	config, err := f.parseFlyConfig(configPath)
 	if err != nil {
 		return nil, err
 	}
 
 	// Fly.io apps are typically single-service (like Railway)
 	service := types.Service{
-		Name:      inferServiceNameFromPath(rootPath), // Use directory name for consistency
+		Name:      f.filesystem.Base(rootPath), // Use directory name for consistency
 		Network:   determineNetworkFromFly(config),
 		Runtime:   types.RuntimeContinuous, // Fly services are continuous
 		Build:     determineBuildFromFly(config),
@@ -84,9 +90,13 @@ type FlyVM struct {
 	MemoryMB int    `toml:"memory_mb,omitempty"`
 }
 
-func parseFlyConfig(configPath string) (*FlyConfig, error) {
+func (f *FlySignal) parseFlyConfig(configPath string) (*FlyConfig, error) {
 	var config FlyConfig
-	_, err := toml.DecodeFile(configPath, &config)
+	content, err := f.filesystem.ReadFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+	_, err = toml.Decode(string(content), &config)
 	if err != nil {
 		return nil, err
 	}

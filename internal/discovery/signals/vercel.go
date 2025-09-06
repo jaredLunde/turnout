@@ -3,26 +3,31 @@ package signals
 import (
 	"context"
 	"encoding/json"
-	"os"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
 	"github.com/railwayapp/turnout/internal/utils/fs"
 )
 
-type VercelSignal struct{}
+type VercelSignal struct{
+	filesystem fs.FileSystem
+}
+
+func NewVercelSignal(filesystem fs.FileSystem) *VercelSignal {
+	return &VercelSignal{filesystem: filesystem}
+}
 
 func (v *VercelSignal) Confidence() int {
 	return 95 // Highest confidence - Vercel configs are explicit production deployment specs
 }
 
-func (v *VercelSignal) Discover(ctx context.Context, rootPath string) ([]types.Service, error) {
+func (v *VercelSignal) Discover(ctx context.Context, rootPath string, dirEntries []fs.DirEntry) ([]types.Service, error) {
 	// Look for vercel.json
-	configPath, err := fs.FindFile(rootPath, "vercel.json")
+	configPath, err := fs.FindFileInEntries(v.filesystem, rootPath, "vercel.json", dirEntries)
 	if err != nil || configPath == "" {
 		return nil, err
 	}
 
-	_, err = parseVercelConfig(configPath)
+	_, err = v.parseVercelConfig(configPath)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +35,7 @@ func (v *VercelSignal) Discover(ctx context.Context, rootPath string) ([]types.S
 	// Vercel deploys are typically single-service (static site + serverless functions)
 	// but we model it as one service representing the deployment
 	service := types.Service{
-		Name:      inferServiceNameFromPath(rootPath),
+		Name:      v.filesystem.Base(rootPath),
 		Network:   types.NetworkPublic, // Vercel deployments are web-facing
 		Runtime:   types.RuntimeContinuous, // Web deployments run continuously
 		Build:     types.BuildFromSource, // Vercel builds from source
@@ -99,8 +104,8 @@ type VercelGit struct {
 	DeploymentEnabled map[string]bool `json:"deploymentEnabled,omitempty"`
 }
 
-func parseVercelConfig(configPath string) (*VercelConfig, error) {
-	data, err := os.ReadFile(configPath)
+func (v *VercelSignal) parseVercelConfig(configPath string) (*VercelConfig, error) {
+	data, err := v.filesystem.ReadFile(configPath)
 	if err != nil {
 		return nil, err
 	}

@@ -3,21 +3,27 @@ package signals
 import (
 	"context"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/compose-spec/compose-go/v2/loader"
 	composeTypes "github.com/compose-spec/compose-go/v2/types"
 	"github.com/railwayapp/turnout/internal/discovery/types"
+	"github.com/railwayapp/turnout/internal/utils/fs"
 )
 
-type DockerComposeSignal struct{}
+type DockerComposeSignal struct {
+	filesystem fs.FileSystem
+}
+
+func NewDockerComposeSignal(filesystem fs.FileSystem) *DockerComposeSignal {
+	return &DockerComposeSignal{filesystem: filesystem}
+}
 
 func (d *DockerComposeSignal) Confidence() int {
 	return 80 // High confidence - but often used for local dev, not production deployment
 }
 
-func (d *DockerComposeSignal) Discover(ctx context.Context, rootPath string) ([]types.Service, error) {
+func (d *DockerComposeSignal) Discover(ctx context.Context, rootPath string, dirEntries []fs.DirEntry) ([]types.Service, error) {
 	// Try common compose file names
 	composeFiles := []string{
 		"docker-compose.yml",
@@ -28,8 +34,8 @@ func (d *DockerComposeSignal) Discover(ctx context.Context, rootPath string) ([]
 	
 	var composePath string
 	for _, filename := range composeFiles {
-		path := filepath.Join(rootPath, filename)
-		if _, err := os.Stat(path); err == nil {
+		path := d.filesystem.Join(rootPath, filename)
+		if _, err := d.filesystem.Stat(path); err == nil {
 			composePath = path
 			break
 		}
@@ -47,7 +53,7 @@ func (d *DockerComposeSignal) Discover(ctx context.Context, rootPath string) ([]
 	}
 	
 	project, err := loader.LoadWithContext(ctx, configDetails, func(options *loader.Options) {
-		options.SetProjectName(filepath.Base(rootPath), true)
+		options.SetProjectName(d.filesystem.Base(rootPath), true)
 	})
 	if err != nil {
 		return nil, err

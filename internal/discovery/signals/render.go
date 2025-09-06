@@ -2,27 +2,32 @@ package signals
 
 import (
 	"context"
-	"os"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
 	"github.com/railwayapp/turnout/internal/utils/fs"
 	"gopkg.in/yaml.v3"
 )
 
-type RenderSignal struct{}
+type RenderSignal struct {
+	filesystem fs.FileSystem
+}
+
+func NewRenderSignal(filesystem fs.FileSystem) *RenderSignal {
+	return &RenderSignal{filesystem: filesystem}
+}
 
 func (r *RenderSignal) Confidence() int {
 	return 95 // Highest confidence - Render Blueprints are explicit production deployment specs
 }
 
-func (r *RenderSignal) Discover(ctx context.Context, rootPath string) ([]types.Service, error) {
+func (r *RenderSignal) Discover(ctx context.Context, rootPath string, dirEntries []fs.DirEntry) ([]types.Service, error) {
 	// Look for render.yaml
-	configPath, err := fs.FindFile(rootPath, "render.yaml")
+	configPath, err := fs.FindFileInEntries(r.filesystem, rootPath, "render.yaml", dirEntries)
 	if err != nil || configPath == "" {
 		return nil, err
 	}
 
-	config, err := parseRenderConfig(configPath)
+	config, err := r.parseRenderConfig(configPath)
 	if err != nil {
 		return nil, err
 	}
@@ -151,8 +156,8 @@ type RenderPreviews struct {
 	Generation string `yaml:"generation,omitempty"`
 }
 
-func parseRenderConfig(configPath string) (*RenderConfig, error) {
-	data, err := os.ReadFile(configPath)
+func (r *RenderSignal) parseRenderConfig(configPath string) (*RenderConfig, error) {
+	data, err := r.filesystem.ReadFile(configPath)
 	if err != nil {
 		return nil, err
 	}

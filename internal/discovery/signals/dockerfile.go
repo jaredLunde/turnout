@@ -2,7 +2,6 @@ package signals
 
 import (
 	"context"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -10,30 +9,31 @@ import (
 	"github.com/railwayapp/turnout/internal/utils/fs"
 )
 
-type DockerfileSignal struct{}
+type DockerfileSignal struct {
+	filesystem fs.FileSystem
+}
+
+func NewDockerfileSignal(filesystem fs.FileSystem) *DockerfileSignal {
+	return &DockerfileSignal{filesystem: filesystem}
+}
 
 func (d *DockerfileSignal) Confidence() int {
 	return 70 // Moderate confidence - just indicates buildable service, not deployment config
 }
 
-func (d *DockerfileSignal) Discover(ctx context.Context, rootPath string) ([]types.Service, error) {
+func (d *DockerfileSignal) Discover(ctx context.Context, rootPath string, dirEntries []fs.DirEntry) ([]types.Service, error) {
 	var services []types.Service
 
-	// Look for Dockerfiles in root and immediate subdirectories
-	dockerfiles, err := findDockerfiles(rootPath)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, dockerfilePath := range dockerfiles {
+	// Check for Dockerfile in current directory
+	if found, err := fs.FindFileInEntries(d.filesystem, rootPath, "Dockerfile", dirEntries); err == nil && found != "" {
 		service := types.Service{
-			Name:      inferServiceName(dockerfilePath, rootPath),
+			Name:      d.inferServiceName(found, rootPath),
 			Network:   types.NetworkPrivate, // Conservative default
 			Runtime:   types.RuntimeContinuous,
 			Build:     types.BuildFromSource,
-			BuildPath: filepath.Dir(dockerfilePath),
+			BuildPath: d.filesystem.Dir(found),
 			Configs: []types.ConfigRef{
-				{Type: "dockerfile", Path: dockerfilePath},
+				{Type: "dockerfile", Path: found},
 			},
 		}
 
@@ -43,44 +43,19 @@ func (d *DockerfileSignal) Discover(ctx context.Context, rootPath string) ([]typ
 	return services, nil
 }
 
-func findDockerfiles(rootPath string) ([]string, error) {
-	var dockerfiles []string
 
-	// Check root directory
-	if found, err := fs.FindFile(rootPath, "Dockerfile"); err == nil && found != "" {
-		dockerfiles = append(dockerfiles, found)
-	}
-
-	// Check immediate subdirectories
-	entries, err := os.ReadDir(rootPath)
-	if err != nil {
-		return dockerfiles, nil
-	}
-
-	for _, entry := range entries {
-		if entry.IsDir() {
-			subdir := filepath.Join(rootPath, entry.Name())
-			if found, err := fs.FindFile(subdir, "Dockerfile"); err == nil && found != "" {
-				dockerfiles = append(dockerfiles, found)
-			}
-		}
-	}
-
-	return dockerfiles, nil
-}
-
-func inferServiceName(dockerfilePath, rootPath string) string {
-	dir := filepath.Dir(dockerfilePath)
+func (d *DockerfileSignal) inferServiceName(dockerfilePath, rootPath string) string {
+	dir := d.filesystem.Dir(dockerfilePath)
 	
 	// If Dockerfile is in root, use root directory name
 	if dir == rootPath {
-		return filepath.Base(rootPath)
+		return d.filesystem.Base(rootPath)
 	}
 	
 	// Use subdirectory name
-	rel, err := filepath.Rel(rootPath, dir)
+	rel, err := d.filesystem.Rel(rootPath, dir)
 	if err != nil {
-		return filepath.Base(dir)
+		return d.filesystem.Base(dir)
 	}
 	
 	// Use first directory component as service name

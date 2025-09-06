@@ -9,6 +9,7 @@ import (
 
 	"github.com/railwayapp/turnout/internal/discovery"
 	"github.com/railwayapp/turnout/internal/discovery/types"
+	"github.com/railwayapp/turnout/internal/utils/fs"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -76,8 +77,20 @@ func initConfig() {
 }
 
 func runPipeline(sourcePath string) error {
+	// Create filesystem from the sourcePath (supports file://, github://, git://)
+	filesystem, err := fs.NewFileSystem(sourcePath)
+	if err != nil {
+		return fmt.Errorf("failed to create filesystem: %w", err)
+	}
+	
+	// Clean up git filesystem if needed
+	if gitFS, ok := filesystem.(*fs.GitFS); ok {
+		defer gitFS.Cleanup()
+	}
+	
+
 	// Service discovery - find and triangulate services from multiple signals
-	serviceDiscovery := discovery.NewServiceDiscovery()
+	serviceDiscovery := discovery.NewServiceDiscovery(filesystem)
 	services, err := serviceDiscovery.Discover(context.Background(), sourcePath)
 	if err != nil {
 		return fmt.Errorf("service discovery failed: %w", err)

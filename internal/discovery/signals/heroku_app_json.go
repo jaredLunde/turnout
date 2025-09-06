@@ -3,27 +3,32 @@ package signals
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
 	"github.com/railwayapp/turnout/internal/utils/fs"
 )
 
-type HerokuAppJsonSignal struct{}
+type HerokuAppJsonSignal struct {
+	filesystem fs.FileSystem
+}
+
+func NewHerokuAppJsonSignal(filesystem fs.FileSystem) *HerokuAppJsonSignal {
+	return &HerokuAppJsonSignal{filesystem: filesystem}
+}
 
 func (h *HerokuAppJsonSignal) Confidence() int {
 	return 90 // High confidence - app.json defines explicit app configuration
 }
 
-func (h *HerokuAppJsonSignal) Discover(ctx context.Context, rootPath string) ([]types.Service, error) {
+func (h *HerokuAppJsonSignal) Discover(ctx context.Context, rootPath string, dirEntries []fs.DirEntry) ([]types.Service, error) {
 	// Look for app.json
-	configPath, err := fs.FindFile(rootPath, "app.json")
+	configPath, err := fs.FindFileInEntries(h.filesystem, rootPath, "app.json", dirEntries)
 	if err != nil || configPath == "" {
 		return nil, err
 	}
 
-	config, err := parseAppJson(configPath)
+	config, err := h.parseAppJson(configPath)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +38,7 @@ func (h *HerokuAppJsonSignal) Discover(ctx context.Context, rootPath string) ([]
 	// app.json typically describes one app, but we model it as a service
 	serviceName := config.Name
 	if serviceName == "" {
-		serviceName = inferServiceNameFromPath(rootPath)
+		serviceName = h.filesystem.Base(rootPath)
 	}
 
 	service := types.Service{
@@ -122,8 +127,8 @@ type HerokuScripts struct {
 	PrDestroy  string `json:"pr-predestroy"`
 }
 
-func parseAppJson(configPath string) (*HerokuAppJson, error) {
-	data, err := os.ReadFile(configPath)
+func (h *HerokuAppJsonSignal) parseAppJson(configPath string) (*HerokuAppJson, error) {
+	data, err := h.filesystem.ReadFile(configPath)
 	if err != nil {
 		return nil, err
 	}

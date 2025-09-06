@@ -8,27 +8,33 @@ import (
 	"github.com/railwayapp/turnout/internal/utils/fs"
 )
 
-type NetlifySignal struct{}
+type NetlifySignal struct {
+	filesystem fs.FileSystem
+}
+
+func NewNetlifySignal(filesystem fs.FileSystem) *NetlifySignal {
+	return &NetlifySignal{filesystem: filesystem}
+}
 
 func (n *NetlifySignal) Confidence() int {
 	return 95 // Highest confidence - Netlify configs are explicit production deployment specs
 }
 
-func (n *NetlifySignal) Discover(ctx context.Context, rootPath string) ([]types.Service, error) {
+func (n *NetlifySignal) Discover(ctx context.Context, rootPath string, dirEntries []fs.DirEntry) ([]types.Service, error) {
 	// Look for netlify.toml
-	configPath, err := fs.FindFile(rootPath, "netlify.toml")
+	configPath, err := fs.FindFileInEntries(n.filesystem, rootPath, "netlify.toml", dirEntries)
 	if err != nil || configPath == "" {
 		return nil, err
 	}
 
-	_, err = parseNetlifyConfig(configPath)
+	_, err = n.parseNetlifyConfig(configPath)
 	if err != nil {
 		return nil, err
 	}
 
 	// Netlify deployments are single-service (static site + edge functions)
 	service := types.Service{
-		Name:      inferServiceNameFromPath(rootPath),
+		Name:      n.filesystem.Base(rootPath),
 		Network:   types.NetworkPublic,     // Netlify deployments are web-facing
 		Runtime:   types.RuntimeContinuous, // Web deployments run continuously
 		Build:     types.BuildFromSource,   // Netlify builds from source
@@ -85,9 +91,13 @@ type NetlifyTemplate struct {
 	Incoming []string `toml:"incoming"`
 }
 
-func parseNetlifyConfig(configPath string) (*NetlifyConfig, error) {
+func (n *NetlifySignal) parseNetlifyConfig(configPath string) (*NetlifyConfig, error) {
 	var config NetlifyConfig
-	_, err := toml.DecodeFile(configPath, &config)
+	content, err := n.filesystem.ReadFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+	_, err = toml.Decode(string(content), &config)
 	if err != nil {
 		return nil, err
 	}

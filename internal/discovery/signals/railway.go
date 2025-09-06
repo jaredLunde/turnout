@@ -3,35 +3,40 @@ package signals
 import (
 	"context"
 	"encoding/json"
-	"os"
-	"path/filepath"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/railwayapp/turnout/internal/discovery/types"
 	"github.com/railwayapp/turnout/internal/utils/fs"
 )
 
-type RailwaySignal struct{}
+type RailwaySignal struct{
+	filesystem fs.FileSystem
+}
+
+func NewRailwaySignal(filesystem fs.FileSystem) *RailwaySignal {
+	return &RailwaySignal{filesystem: filesystem}
+}
 
 func (r *RailwaySignal) Confidence() int {
 	return 95 // Highest confidence - Railway configs are explicit production deployment specs
 }
 
-func (r *RailwaySignal) Discover(ctx context.Context, rootPath string) ([]types.Service, error) {
+func (r *RailwaySignal) Discover(ctx context.Context, rootPath string, dirEntries []fs.DirEntry) ([]types.Service, error) {
 	// Look for Railway config files
-	configPath, err := findRailwayConfig(rootPath)
+	configPath, err := r.findRailwayConfig(rootPath, dirEntries)
 	if err != nil || configPath == "" {
 		return nil, err
 	}
 
-	config, err := parseRailwayConfig(configPath)
+	config, err := r.parseRailwayConfig(configPath)
 	if err != nil {
 		return nil, err
 	}
 
 	// Railway config defines a single service (unlike compose which can have multiple)
 	service := types.Service{
-		Name:      inferServiceNameFromPath(rootPath),
+		Name:      r.inferServiceNameFromPath(rootPath),
 		Network:   determineNetworkFromRailway(config),
 		Runtime:   types.RuntimeContinuous, // Railway services are continuous
 		Build:     determineBuildFromRailway(config),
@@ -44,13 +49,13 @@ func (r *RailwaySignal) Discover(ctx context.Context, rootPath string) ([]types.
 	return []types.Service{service}, nil
 }
 
-func findRailwayConfig(rootPath string) (string, error) {
+func (r *RailwaySignal) findRailwayConfig(rootPath string, dirEntries []fs.DirEntry) (string, error) {
 	// Check for railway.json first, then railway.toml
-	if found, err := fs.FindFile(rootPath, "railway.json"); err == nil && found != "" {
+	if found, err := fs.FindFileInEntries(r.filesystem, rootPath, "railway.json", dirEntries); err == nil && found != "" {
 		return found, nil
 	}
 	
-	if found, err := fs.FindFile(rootPath, "railway.toml"); err == nil && found != "" {
+	if found, err := fs.FindFileInEntries(r.filesystem, rootPath, "railway.toml", dirEntries); err == nil && found != "" {
 		return found, nil
 	}
 
@@ -74,15 +79,16 @@ type RailwayDeploy struct {
 	RestartPolicyType string `json:"restartPolicyType,omitempty" toml:"restartPolicyType,omitempty"`
 }
 
-func parseRailwayConfig(configPath string) (*RailwayConfig, error) {
-	data, err := os.ReadFile(configPath)
+func (r *RailwaySignal) parseRailwayConfig(configPath string) (*RailwayConfig, error) {
+	data, err := r.filesystem.ReadFile(configPath)
 	if err != nil {
 		return nil, err
 	}
 
 	var config RailwayConfig
 	
-	if filepath.Ext(configPath) == ".json" {
+	// Use the path extension to determine format
+	if strings.HasSuffix(configPath, ".json") {
 		err = json.Unmarshal(data, &config)
 	} else {
 		err = toml.Unmarshal(data, &config)
@@ -115,7 +121,7 @@ func determineBuildFromRailway(config *RailwayConfig) types.Build {
 	return types.BuildFromSource
 }
 
-func inferServiceNameFromPath(rootPath string) string {
+func (r *RailwaySignal) inferServiceNameFromPath(rootPath string) string {
 	// Use directory name as service name
-	return filepath.Base(rootPath)
+	return r.filesystem.Base(rootPath)
 }

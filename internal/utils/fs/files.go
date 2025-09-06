@@ -1,15 +1,13 @@
 package fs
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 )
 
-// FindFile looks for a file with the given name (case-insensitive) in the specified directory.
+// FindFile looks for a file with the given name (case-insensitive) in the specified directory using the provided filesystem.
 // Returns the actual path with correct case if found, empty string if not found.
-func FindFile(dir, filename string) (string, error) {
-	entries, err := os.ReadDir(dir)
+func FindFile(filesystem FileSystem, dir, filename string) (string, error) {
+	entries, err := filesystem.ReadDir(dir)
 	if err != nil {
 		return "", err
 	}
@@ -20,7 +18,7 @@ func FindFile(dir, filename string) (string, error) {
 		}
 		
 		if strings.EqualFold(entry.Name(), filename) {
-			return filepath.Join(dir, entry.Name()), nil
+			return filesystem.Join(dir, entry.Name()), nil
 		}
 	}
 
@@ -29,8 +27,10 @@ func FindFile(dir, filename string) (string, error) {
 
 // FindFiles looks for files matching any of the given names (case-insensitive) in the specified directory.
 // Returns at most one file per directory to avoid duplicates on case-insensitive filesystems.
+// Legacy function for backwards compatibility - uses local filesystem
 func FindFiles(dir string, filenames []string) ([]string, error) {
-	entries, err := os.ReadDir(dir)
+	localFS := NewLocalFS()
+	entries, err := localFS.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func FindFiles(dir string, filenames []string) ([]string, error) {
 		
 		for _, filename := range filenames {
 			if strings.EqualFold(entry.Name(), filename) {
-				found = append(found, filepath.Join(dir, entry.Name()))
+				found = append(found, localFS.Join(dir, entry.Name()))
 				goto nextEntry // Only match one file per entry to avoid duplicates
 			}
 		}
@@ -51,4 +51,16 @@ func FindFiles(dir string, filenames []string) ([]string, error) {
 	}
 
 	return found, nil
+}
+
+// FindFileInEntries looks for a file with the given name (case-insensitive) in the provided directory entries.
+// Returns the actual path with correct case if found, empty string if not found.
+func FindFileInEntries(filesystem FileSystem, dir, filename string, entries []DirEntry) (string, error) {
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.EqualFold(entry.Name(), filename) {
+			return filesystem.Join(dir, entry.Name()), nil
+		}
+	}
+	
+	return "", nil
 }
