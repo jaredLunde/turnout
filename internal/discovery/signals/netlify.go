@@ -2,7 +2,7 @@ package signals
 
 import (
 	"context"
-	"iter"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/railwayapp/turnout/internal/discovery/types"
@@ -10,7 +10,9 @@ import (
 )
 
 type NetlifySignal struct {
-	filesystem fs.FileSystem
+	filesystem      fs.FileSystem
+	currentRootPath string
+	configPaths     []string
 }
 
 func NewNetlifySignal(filesystem fs.FileSystem) *NetlifySignal {
@@ -21,25 +23,40 @@ func (n *NetlifySignal) Confidence() int {
 	return 95 // Highest confidence - Netlify configs are explicit production deployment specs
 }
 
-func (n *NetlifySignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
-	// Look for netlify.toml
-	configPath, err := fs.FindFile(n.filesystem, rootPath, "netlify.toml", dirEntries)
-	if err != nil || configPath == "" {
-		return nil, err
+func (n *NetlifySignal) Reset() {
+	n.configPaths = nil
+	n.currentRootPath = ""
+}
+
+func (n *NetlifySignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+	n.currentRootPath = rootPath
+	
+	if !entry.IsDir() && strings.EqualFold(entry.Name(), "netlify.toml") {
+		configPath := n.filesystem.Join(rootPath, entry.Name())
+		n.configPaths = append(n.configPaths, configPath)
+	}
+	
+	return nil
+}
+
+func (n *NetlifySignal) GenerateServices(ctx context.Context) ([]types.Service, error) {
+	if len(n.configPaths) == 0 {
+		return nil, nil
 	}
 
-	_, err = n.parseNetlifyConfig(configPath)
+	configPath := n.configPaths[0]
+	_, err := n.parseNetlifyConfig(configPath)
 	if err != nil {
 		return nil, err
 	}
 
-	// Netlify deployments are single-service (static site + edge functions)
+	// Netlify deploys are typically single-service static sites
 	service := types.Service{
-		Name:      n.filesystem.Base(rootPath),
-		Network:   types.NetworkPublic,     // Netlify deployments are web-facing
-		Runtime:   types.RuntimeContinuous, // Web deployments run continuously
+		Name:      n.filesystem.Base(n.currentRootPath),
+		Network:   types.NetworkPublic,     // Static sites are web-facing
+		Runtime:   types.RuntimeContinuous, // CDN serves continuously
 		Build:     types.BuildFromSource,   // Netlify builds from source
-		BuildPath: rootPath,
+		BuildPath: n.currentRootPath,
 		Configs: []types.ConfigRef{
 			{Type: "netlify", Path: configPath},
 		},
@@ -50,40 +67,63 @@ func (n *NetlifySignal) Discover(ctx context.Context, rootPath string, dirEntrie
 
 // NetlifyConfig represents the netlify.toml configuration structure
 type NetlifyConfig struct {
-	Build     *NetlifyBuild             `toml:"build"`
-	Context   map[string]NetlifyContext `toml:"context"`
-	Functions *NetlifyFunctions         `toml:"functions"`
-	Redirects []NetlifyRedirect         `toml:"redirects"`
-	Headers   []NetlifyHeader           `toml:"headers"`
-	Template  *NetlifyTemplate          `toml:"template"`
+	Build     *NetlifyBuild       `toml:"build,omitempty"`
+	Deploy    *NetlifyDeploy      `toml:"deploy,omitempty"`
+	Context   map[string]*NetlifyBuild `toml:"context,omitempty"`
+	Headers   []NetlifyHeaders    `toml:"headers,omitempty"`
+	Redirects []NetlifyRedirects  `toml:"redirects,omitempty"`
+	Edge      *NetlifyEdge        `toml:"edge,omitempty"`
+	Template  *NetlifyTemplate    `toml:"template,omitempty"`
 }
 
 type NetlifyBuild struct {
-	Publish   string `toml:"publish"`
-	Command   string `toml:"command"`
-	Functions string `toml:"functions"`
-	Base      string `toml:"base"`
+	Base            string            `toml:"base,omitempty"`
+	Command         string            `toml:"command,omitempty"`
+	Publish         string            `toml:"publish,omitempty"`
+	Functions       string            `toml:"functions,omitempty"`
+	EdgeFunctions   string            `toml:"edge_functions,omitempty"`
+	Environment     map[string]string `toml:"environment,omitempty"`
+	ProcessingSkip  bool              `toml:"processing.skip,omitempty"`
+	ProcessingCSS   map[string]bool   `toml:"processing.css,omitempty"`
+	ProcessingJS    map[string]bool   `toml:"processing.js,omitempty"`
+	ProcessingImages map[string]bool  `toml:"processing.images,omitempty"`
+	ProcessingHTML  map[string]bool   `toml:"processing.html,omitempty"`
+}
+
+type NetlifyDeploy struct {
+	Publish          string `toml:"publish,omitempty"`
+	Production       bool   `toml:"production,omitempty"`
+	PreviewBranch    string `toml:"preview_branch,omitempty"`
+	SplitTestBranch  string `toml:"split_test_branch,omitempty"`
+	AutoPublish      bool   `toml:"auto_publish,omitempty"`
+}
+
+type NetlifyHeaders struct {
+	For    string            `toml:"for"`
+	Values map[string]string `toml:"values"`
+}
+
+type NetlifyRedirects struct {
+	From       string `toml:"from"`
+	To         string `toml:"to"`
+	Status     int    `toml:"status,omitempty"`
+	Force      bool   `toml:"force,omitempty"`
+	Query      string `toml:"query,omitempty"`
+	Conditions string `toml:"conditions,omitempty"`
+	Headers    string `toml:"headers,omitempty"`
+	Signed     string `toml:"signed,omitempty"`
+}
+
+type NetlifyEdge struct {
+	Functions []NetlifyEdgeFunction `toml:"functions,omitempty"`
+}
+
+type NetlifyEdgeFunction struct {
+	Function string   `toml:"function"`
+	Path     []string `toml:"path"`
 }
 
 type NetlifyContext struct {
-	Publish     string            `toml:"publish"`
-	Command     string            `toml:"command"`
-	Functions   string            `toml:"functions"`
-	Base        string            `toml:"base"`
-	Environment map[string]string `toml:"environment"`
-}
-
-type NetlifyFunctions struct {
-	Directory string `toml:"directory"`
-}
-
-type NetlifyRedirect struct {
-	From   string `toml:"from"`
-	To     string `toml:"to"`
-	Status int    `toml:"status"`
-}
-
-type NetlifyHeader struct {
 	For    string            `toml:"for"`
 	Values map[string]string `toml:"values"`
 }

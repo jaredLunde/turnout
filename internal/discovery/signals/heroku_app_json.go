@@ -3,7 +3,6 @@ package signals
 import (
 	"context"
 	"encoding/json"
-	"iter"
 	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
@@ -11,7 +10,10 @@ import (
 )
 
 type HerokuAppJsonSignal struct {
-	filesystem fs.FileSystem
+	filesystem      fs.FileSystem
+	currentRootPath string
+	configPaths     []string
+	
 }
 
 func NewHerokuAppJsonSignal(filesystem fs.FileSystem) *HerokuAppJsonSignal {
@@ -22,13 +24,28 @@ func (h *HerokuAppJsonSignal) Confidence() int {
 	return 90 // High confidence - app.json defines explicit app configuration
 }
 
-func (h *HerokuAppJsonSignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
-	// Look for app.json
-	configPath, err := fs.FindFile(h.filesystem, rootPath, "app.json", dirEntries)
-	if err != nil || configPath == "" {
-		return nil, err
+func (h *HerokuAppJsonSignal) Reset() {
+	h.configPaths = nil
+	h.currentRootPath = ""
+}
+
+func (h *HerokuAppJsonSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+	h.currentRootPath = rootPath
+	
+	if !entry.IsDir() && strings.EqualFold(entry.Name(), "app.json") {
+		configPath := h.filesystem.Join(rootPath, entry.Name())
+		h.configPaths = append(h.configPaths, configPath)
+	}
+	
+	return nil
+}
+
+func (h *HerokuAppJsonSignal) GenerateServices(ctx context.Context) ([]types.Service, error) {
+	if len(h.configPaths) == 0 {
+		return nil, nil
 	}
 
+	configPath := h.configPaths[0]
 	config, err := h.parseAppJson(configPath)
 	if err != nil {
 		return nil, err
@@ -39,7 +56,7 @@ func (h *HerokuAppJsonSignal) Discover(ctx context.Context, rootPath string, dir
 	// app.json typically describes one app, but we model it as a service
 	serviceName := config.Name
 	if serviceName == "" {
-		serviceName = h.filesystem.Base(rootPath)
+		serviceName = h.filesystem.Base(h.currentRootPath)
 	}
 
 	service := types.Service{
@@ -47,7 +64,7 @@ func (h *HerokuAppJsonSignal) Discover(ctx context.Context, rootPath string, dir
 		Network:   types.NetworkPublic,     // Heroku apps are typically web-facing
 		Runtime:   types.RuntimeContinuous, // Apps run continuously
 		Build:     types.BuildFromSource,   // Heroku builds from source
-		BuildPath: rootPath,
+		BuildPath: h.currentRootPath,
 		Configs: []types.ConfigRef{
 			{Type: "heroku-app-json", Path: configPath},
 		},

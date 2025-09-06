@@ -1,7 +1,23 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(sed:*)",
+      "Bash(go build:*)",
+      "Bash(ls:*)",
+      "Bash(head:*)",
+      "Bash(find:*)",
+      "Bash(mv:*)",
+      "Bash(printf:*)",
+      "Bash(grep:*)",
+      "Bash(go vet:*)",
+      "Bash(go test:*)",
+      "Bash(go tool pprof:*)",
+      "Bash(go run:*)",
+      "Bash(mise run test:*)",
+      "Bash(mise run lint:*)",
+      "Bash(git stash:*)",
+      "Bash(dprint fmt:*)"
     ],
     "deny": [],
     "ask": []

@@ -3,7 +3,6 @@ package discovery
 import (
 	"context"
 	"fmt"
-	"iter"
 	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/signals"
@@ -17,7 +16,16 @@ type ServiceDiscovery struct {
 }
 
 type ServiceSignal interface {
-	Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error)
+	// Called for each file/directory entry encountered during directory walk
+	ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error
+
+	// Called after all entries in a directory have been observed to generate services
+	GenerateServices(ctx context.Context) ([]types.Service, error)
+
+	// Reset internal state before processing a new directory
+	Reset()
+
+	// Confidence level for conflict resolution
 	Confidence() int // 0-100, for conflict resolution
 }
 
@@ -179,13 +187,7 @@ func (sd *ServiceDiscovery) shouldIgnoreDirectory(dirName string) bool {
 	return false
 }
 
-// walkState holds directory contents for reuse
-type walkState struct {
-	dirEntries []fs.DirEntry
-	subdirs    []string
-}
-
-// efficientWalk performs recursive directory traversal with exactly one ReadDir per directory
+// efficientWalk performs recursive directory traversal with single-pass observation
 func (sd *ServiceDiscovery) efficientWalk(filesystem fs.FileSystem, path string, depth, maxDepth int, results *[]signalResult, lastCriticalError *error, ctx context.Context) error {
 	if depth > maxDepth {
 		return nil
@@ -197,24 +199,41 @@ func (sd *ServiceDiscovery) efficientWalk(filesystem fs.FileSystem, path string,
 		return nil
 	}
 
-	// Read directory once and cache results
-	state, err := sd.readDirOnce(filesystem, path, lastCriticalError)
-	if err != nil {
-		return err
+	// Reset all signals for this directory
+	for _, signal := range sd.signals {
+		signal.Reset()
 	}
 
-	// Create iterator from cached entries for signals
-	entriesIter := func(yield func(fs.DirEntry, error) bool) {
-		for _, entry := range state.dirEntries {
-			if !yield(entry, nil) {
-				return
+	var subdirs []string
+
+	// Single pass: observe each entry and collect subdirectories
+	for entry, err := range filesystem.ReadDir(path) {
+		if err != nil {
+			if isCriticalError(err) {
+				*lastCriticalError = err
+			}
+			continue
+		}
+
+		// Collect subdirectories for recursion
+		if entry.IsDir() {
+			subdirs = append(subdirs, entry.Name())
+		}
+
+		// Let all signals observe this entry
+		for _, signal := range sd.signals {
+			if err := signal.ObserveEntry(ctx, path, entry); err != nil {
+				if isCriticalError(err) {
+					*lastCriticalError = err
+				}
+				// Continue with other signals even if one fails
 			}
 		}
 	}
 
-	// Run all signals on this directory with iterator
+	// Generate services from all signals
 	for _, signal := range sd.signals {
-		services, err := signal.Discover(ctx, path, entriesIter)
+		services, err := signal.GenerateServices(ctx)
 		if err != nil {
 			if isCriticalError(err) {
 				*lastCriticalError = err
@@ -231,7 +250,7 @@ func (sd *ServiceDiscovery) efficientWalk(filesystem fs.FileSystem, path string,
 	}
 
 	// Recurse into subdirectories
-	for _, dirName := range state.subdirs {
+	for _, dirName := range subdirs {
 		subPath := filesystem.Join(path, dirName)
 		if err := sd.efficientWalk(filesystem, subPath, depth+1, maxDepth, results, lastCriticalError, ctx); err != nil {
 			return err
@@ -239,26 +258,6 @@ func (sd *ServiceDiscovery) efficientWalk(filesystem fs.FileSystem, path string,
 	}
 
 	return nil
-}
-
-// readDirOnce reads directory entries once and caches them
-func (sd *ServiceDiscovery) readDirOnce(filesystem fs.FileSystem, path string, lastCriticalError *error) (*walkState, error) {
-	state := &walkState{}
-	
-	for entry, err := range filesystem.ReadDir(path) {
-		if err != nil {
-			if isCriticalError(err) {
-				*lastCriticalError = err
-			}
-			continue
-		}
-		state.dirEntries = append(state.dirEntries, entry)
-		if entry.IsDir() {
-			state.subdirs = append(state.subdirs, entry.Name())
-		}
-	}
-	
-	return state, nil
 }
 
 // isCriticalError determines if an error is critical (auth/permission) vs expected (not found)

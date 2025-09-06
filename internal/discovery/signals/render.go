@@ -2,7 +2,7 @@ package signals
 
 import (
 	"context"
-	"iter"
+	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
 	"github.com/railwayapp/turnout/internal/utils/fs"
@@ -10,7 +10,9 @@ import (
 )
 
 type RenderSignal struct {
-	filesystem fs.FileSystem
+	filesystem      fs.FileSystem
+	currentRootPath string
+	configPaths     []string
 }
 
 func NewRenderSignal(filesystem fs.FileSystem) *RenderSignal {
@@ -21,57 +23,73 @@ func (r *RenderSignal) Confidence() int {
 	return 95 // Highest confidence - Render Blueprints are explicit production deployment specs
 }
 
-func (r *RenderSignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
-	// Look for render.yaml
-	configPath, err := fs.FindFile(r.filesystem, rootPath, "render.yaml", dirEntries)
-	if err != nil || configPath == "" {
-		return nil, err
+func (r *RenderSignal) Reset() {
+	r.configPaths = nil
+	r.currentRootPath = ""
+}
+
+func (r *RenderSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+	r.currentRootPath = rootPath
+	
+	if !entry.IsDir() && strings.EqualFold(entry.Name(), "render.yaml") {
+		configPath := r.filesystem.Join(rootPath, entry.Name())
+		r.configPaths = append(r.configPaths, configPath)
+	}
+	
+	return nil
+}
+
+func (r *RenderSignal) GenerateServices(ctx context.Context) ([]types.Service, error) {
+	if len(r.configPaths) == 0 {
+		return nil, nil
 	}
 
-	config, err := r.parseRenderConfig(configPath)
-	if err != nil {
-		return nil, err
-	}
+	var allServices []types.Service
 
-	var services []types.Service
-
-	// Add regular services
-	for _, renderService := range config.Services {
-		service := types.Service{
-			Name:      renderService.Name,
-			Network:   determineNetworkFromRender(renderService),
-			Runtime:   determineRuntimeFromRender(renderService),
-			Build:     determineBuildFromRender(renderService),
-			BuildPath: rootPath, // Render builds from repo root by default
-			Configs: []types.ConfigRef{
-				{Type: "render", Path: configPath},
-			},
+	for _, configPath := range r.configPaths {
+		config, err := r.parseRenderConfig(configPath)
+		if err != nil {
+			continue // Skip broken configs
 		}
 
-		// Set image for prebuilt Docker images
-		if renderService.Image != nil && renderService.Image.URL != "" {
-			service.Image = renderService.Image.URL
+		// Add regular services
+		for _, renderService := range config.Services {
+			service := types.Service{
+				Name:      renderService.Name,
+				Network:   determineNetworkFromRender(renderService),
+				Runtime:   determineRuntimeFromRender(renderService),
+				Build:     determineBuildFromRender(renderService),
+				BuildPath: r.currentRootPath, // Render builds from repo root by default
+				Configs: []types.ConfigRef{
+					{Type: "render", Path: configPath},
+				},
+			}
+
+			// Set image for prebuilt Docker images
+			if renderService.Image != nil && renderService.Image.URL != "" {
+				service.Image = renderService.Image.URL
+			}
+
+			allServices = append(allServices, service)
 		}
 
-		services = append(services, service)
-	}
-
-	// Add databases as services
-	for _, renderDB := range config.Databases {
-		service := types.Service{
-			Name:    renderDB.Name,
-			Network: types.NetworkPrivate,    // Databases are typically private
-			Runtime: types.RuntimeContinuous, // Databases run continuously
-			Build:   types.BuildFromImage,    // Databases use pre-built images
-			Image:   "postgres",              // Could be more specific based on version
-			Configs: []types.ConfigRef{
-				{Type: "render", Path: configPath},
-			},
+		// Add databases as services
+		for _, renderDB := range config.Databases {
+			service := types.Service{
+				Name:    renderDB.Name,
+				Network: types.NetworkPrivate,    // Databases are typically private
+				Runtime: types.RuntimeContinuous, // Databases run continuously
+				Build:   types.BuildFromImage,    // Databases use pre-built images
+				Image:   "postgres",              // Could be more specific based on version
+				Configs: []types.ConfigRef{
+					{Type: "render", Path: configPath},
+				},
+			}
+			allServices = append(allServices, service)
 		}
-		services = append(services, service)
 	}
 
-	return services, nil
+	return allServices, nil
 }
 
 // RenderConfig represents the render.yaml blueprint structure

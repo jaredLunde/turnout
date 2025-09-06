@@ -2,8 +2,6 @@ package signals
 
 import (
 	"context"
-	"iter"
-	"os"
 	"strings"
 
 	"github.com/compose-spec/compose-go/v2/loader"
@@ -13,7 +11,9 @@ import (
 )
 
 type DockerComposeSignal struct {
-	filesystem fs.FileSystem
+	filesystem      fs.FileSystem
+	currentRootPath string
+	composeFiles    []string // all found compose files
 }
 
 func NewDockerComposeSignal(filesystem fs.FileSystem) *DockerComposeSignal {
@@ -24,36 +24,52 @@ func (d *DockerComposeSignal) Confidence() int {
 	return 80 // High confidence - but often used for local dev, not production deployment
 }
 
-func (d *DockerComposeSignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
-	// Try common compose file names
-	composeFiles := []string{
-		"docker-compose.yml",
-		"docker-compose.yaml", 
-		"compose.yml",
-		"compose.yaml",
-	}
+func (d *DockerComposeSignal) Reset() {
+	d.composeFiles = nil
+	d.currentRootPath = ""
+}
+
+func (d *DockerComposeSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+	d.currentRootPath = rootPath
 	
-	var composePath string
-	for _, filename := range composeFiles {
-		if found, err := fs.FindFile(d.filesystem, rootPath, filename, dirEntries); err == nil && found != "" {
-			composePath = found
-			break
+	if !entry.IsDir() {
+		// Try common compose file names
+		composeFiles := []string{
+			"docker-compose.yml",
+			"docker-compose.yaml", 
+			"compose.yml",
+			"compose.yaml",
+		}
+		
+		for _, filename := range composeFiles {
+			if strings.EqualFold(entry.Name(), filename) {
+				composePath := d.filesystem.Join(rootPath, entry.Name())
+				d.composeFiles = append(d.composeFiles, composePath)
+				break // Only take the first match per priority
+			}
 		}
 	}
 	
-	if composePath == "" {
-		return nil, os.ErrNotExist
+	return nil
+}
+
+func (d *DockerComposeSignal) GenerateServices(ctx context.Context) ([]types.Service, error) {
+	if len(d.composeFiles) == 0 {
+		return nil, nil
 	}
+
+	// Process the first compose file found (highest priority)
+	composePath := d.composeFiles[0]
 	
 	configDetails := composeTypes.ConfigDetails{
-		WorkingDir: rootPath,
+		WorkingDir: d.currentRootPath,
 		ConfigFiles: []composeTypes.ConfigFile{
 			{Filename: composePath},
 		},
 	}
 	
 	project, err := loader.LoadWithContext(ctx, configDetails, func(options *loader.Options) {
-		options.SetProjectName(d.filesystem.Base(rootPath), true)
+		options.SetProjectName(d.filesystem.Base(d.currentRootPath), true)
 	})
 	if err != nil {
 		return nil, err

@@ -3,7 +3,6 @@ package signals
 import (
 	"context"
 	"encoding/json"
-	"iter"
 	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
@@ -11,7 +10,9 @@ import (
 )
 
 type PackageSignal struct {
-	filesystem fs.FileSystem
+	filesystem      fs.FileSystem
+	currentRootPath string
+	packagePaths    map[string]string // filename -> full path
 }
 
 func NewPackageSignal(filesystem fs.FileSystem) *PackageSignal {
@@ -22,17 +23,55 @@ func (p *PackageSignal) Confidence() int {
 	return 50 // Low confidence - dependencies might be unused or transitive
 }
 
-func (p *PackageSignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
-	frameworks := p.detectFrameworksFromPackages(rootPath, dirEntries)
+func (p *PackageSignal) Reset() {
+	p.packagePaths = make(map[string]string)
+	p.currentRootPath = ""
+}
+
+func (p *PackageSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+	p.currentRootPath = rootPath
+	
+	if !entry.IsDir() {
+		// Check for all package manager files
+		packageFiles := []string{
+			"package.json", "requirements.txt", "pyproject.toml", "go.mod", 
+			"Cargo.toml", "composer.json", "Gemfile", "pom.xml", 
+			"build.gradle", "build.gradle.kts", "Package.swift", "mix.exs",
+		}
+		
+		for _, filename := range packageFiles {
+			if strings.EqualFold(entry.Name(), filename) {
+				fullPath := p.filesystem.Join(rootPath, entry.Name())
+				p.packagePaths[filename] = fullPath
+				break
+			}
+		}
+		
+		// Also check for *.csproj files
+		if strings.HasSuffix(strings.ToLower(entry.Name()), ".csproj") {
+			fullPath := p.filesystem.Join(rootPath, entry.Name())
+			p.packagePaths[entry.Name()] = fullPath
+		}
+	}
+	
+	return nil
+}
+
+func (p *PackageSignal) GenerateServices(ctx context.Context) ([]types.Service, error) {
+	if len(p.packagePaths) == 0 {
+		return nil, nil
+	}
+
+	frameworks := p.detectFrameworksFromPackages()
 
 	var services []types.Service
 	for _, fw := range frameworks {
 		service := types.Service{
-			Name:      p.filesystem.Base(rootPath),
+			Name:      p.filesystem.Base(p.currentRootPath),
 			Network:   fw.Network,
 			Runtime:   fw.Runtime,
 			Build:     fw.Build,
-			BuildPath: rootPath,
+			BuildPath: p.currentRootPath,
 			Configs: []types.ConfigRef{
 				{Type: "package", Path: fw.ConfigPath},
 			},
@@ -51,86 +90,94 @@ type PackageFramework struct {
 	Build      types.Build
 }
 
-func (p *PackageSignal) detectFrameworksFromPackages(rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) []PackageFramework {
+func (p *PackageSignal) detectFrameworksFromPackages() []PackageFramework {
 	var frameworks []PackageFramework
 
 	// Node.js package.json
-	if packagePath, err := fs.FindFile(p.filesystem, rootPath, "package.json", dirEntries); err == nil && packagePath != "" {
+	if packagePath, found := p.packagePaths["package.json"]; found {
 		if fw := p.analyzePackageJson(packagePath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
 
 	// Python requirements.txt / pyproject.toml
-	if requirementsPath, err := fs.FindFile(p.filesystem, rootPath, "requirements.txt", dirEntries); err == nil && requirementsPath != "" {
+	if requirementsPath, found := p.packagePaths["requirements.txt"]; found {
 		if fw := p.analyzeRequirements(requirementsPath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
 
-	if pyprojectPath, err := fs.FindFile(p.filesystem, rootPath, "pyproject.toml", dirEntries); err == nil && pyprojectPath != "" {
+	if pyprojectPath, found := p.packagePaths["pyproject.toml"]; found {
 		if fw := p.analyzePyProject(pyprojectPath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
 
 	// Go go.mod
-	if goModPath, err := fs.FindFile(p.filesystem, rootPath, "go.mod", dirEntries); err == nil && goModPath != "" {
+	if goModPath, found := p.packagePaths["go.mod"]; found {
 		if fw := p.analyzeGoMod(goModPath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
 
 	// Rust Cargo.toml
-	if cargoPath, err := fs.FindFile(p.filesystem, rootPath, "Cargo.toml", dirEntries); err == nil && cargoPath != "" {
+	if cargoPath, found := p.packagePaths["Cargo.toml"]; found {
 		if fw := p.analyzeCargo(cargoPath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
 
 	// PHP composer.json
-	if composerPath, err := fs.FindFile(p.filesystem, rootPath, "composer.json", dirEntries); err == nil && composerPath != "" {
+	if composerPath, found := p.packagePaths["composer.json"]; found {
 		if fw := p.analyzeComposer(composerPath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
 
 	// Ruby Gemfile
-	if gemfilePath, err := fs.FindFile(p.filesystem, rootPath, "Gemfile", dirEntries); err == nil && gemfilePath != "" {
+	if gemfilePath, found := p.packagePaths["Gemfile"]; found {
 		if fw := p.analyzeGemfile(gemfilePath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
 
 	// Java/Kotlin/Scala
-	if pomPath, err := fs.FindFile(p.filesystem, rootPath, "pom.xml", dirEntries); err == nil && pomPath != "" {
+	if pomPath, found := p.packagePaths["pom.xml"]; found {
 		if fw := p.analyzePom(pomPath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
 
-	if gradlePath := p.findAnyFile(rootPath, dirEntries, "build.gradle", "build.gradle.kts"); gradlePath != "" {
+	// Check for gradle files
+	if gradlePath, found := p.packagePaths["build.gradle"]; found {
+		if fw := p.analyzeGradle(gradlePath); fw != nil {
+			frameworks = append(frameworks, *fw)
+		}
+	} else if gradlePath, found := p.packagePaths["build.gradle.kts"]; found {
 		if fw := p.analyzeGradle(gradlePath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
 
-	// C#/.NET
-	if csprojPath := p.findGlobFile(rootPath, "*.csproj"); csprojPath != "" {
-		if fw := p.analyzeCsproj(csprojPath); fw != nil {
-			frameworks = append(frameworks, *fw)
+	// C#/.NET - check for any .csproj file
+	for filename, path := range p.packagePaths {
+		if strings.HasSuffix(strings.ToLower(filename), ".csproj") {
+			if fw := p.analyzeCsproj(path); fw != nil {
+				frameworks = append(frameworks, *fw)
+			}
+			break // Only process one csproj file
 		}
 	}
 
 	// Swift Package.swift
-	if swiftPath, err := fs.FindFile(p.filesystem, rootPath, "Package.swift", dirEntries); err == nil && swiftPath != "" {
+	if swiftPath, found := p.packagePaths["Package.swift"]; found {
 		if fw := p.analyzeSwiftPackage(swiftPath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
 
 	// Elixir mix.exs
-	if mixPath, err := fs.FindFile(p.filesystem, rootPath, "mix.exs", dirEntries); err == nil && mixPath != "" {
+	if mixPath, found := p.packagePaths["mix.exs"]; found {
 		if fw := p.analyzeMix(mixPath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
@@ -658,33 +705,4 @@ func (p *PackageSignal) analyzeMix(mixPath string) *PackageFramework {
 	return &PackageFramework{Name: "Elixir Service", ConfigPath: mixPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 }
 
-// Helper functions
-func (p *PackageSignal) findAnyFile(rootPath string, dirEntries iter.Seq2[fs.DirEntry, error], filenames ...string) string {
-	for _, filename := range filenames {
-		if path, err := fs.FindFile(p.filesystem, rootPath, filename, dirEntries); err == nil && path != "" {
-			return path
-		}
-	}
-	return ""
-}
 
-func (p *PackageSignal) findGlobFile(rootPath, pattern string) string {
-	// Simple glob for *.csproj - just check common patterns
-	extensions := []string{".csproj", ".vbproj", ".fsproj"}
-	entries := p.filesystem.ReadDir(rootPath)
-
-	for entry, err := range entries {
-		if err != nil {
-			continue
-		}
-		if entry.IsDir() {
-			continue
-		}
-		for _, ext := range extensions {
-			if strings.HasSuffix(strings.ToLower(entry.Name()), ext) {
-				return entry.Name()
-			}
-		}
-	}
-	return ""
-}

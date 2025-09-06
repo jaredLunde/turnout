@@ -3,14 +3,16 @@ package signals
 import (
 	"context"
 	"encoding/json"
-	"iter"
+	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
 	"github.com/railwayapp/turnout/internal/utils/fs"
 )
 
 type VercelSignal struct {
-	filesystem fs.FileSystem
+	filesystem      fs.FileSystem
+	currentRootPath string
+	configPaths     []string
 }
 
 func NewVercelSignal(filesystem fs.FileSystem) *VercelSignal {
@@ -21,14 +23,31 @@ func (v *VercelSignal) Confidence() int {
 	return 95 // Highest confidence - Vercel configs are explicit production deployment specs
 }
 
-func (v *VercelSignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
-	// Look for vercel.json
-	configPath, err := fs.FindFile(v.filesystem, rootPath, "vercel.json", dirEntries)
-	if err != nil || configPath == "" {
-		return nil, err
+func (v *VercelSignal) Reset() {
+	v.configPaths = nil
+	v.currentRootPath = ""
+}
+
+func (v *VercelSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+	v.currentRootPath = rootPath
+	
+	if !entry.IsDir() && strings.EqualFold(entry.Name(), "vercel.json") {
+		configPath := v.filesystem.Join(rootPath, entry.Name())
+		v.configPaths = append(v.configPaths, configPath)
+	}
+	
+	return nil
+}
+
+func (v *VercelSignal) GenerateServices(ctx context.Context) ([]types.Service, error) {
+	if len(v.configPaths) == 0 {
+		return nil, nil
 	}
 
-	_, err = v.parseVercelConfig(configPath)
+	// Process first config found
+	configPath := v.configPaths[0]
+
+	_, err := v.parseVercelConfig(configPath)
 	if err != nil {
 		return nil, err
 	}
@@ -36,11 +55,11 @@ func (v *VercelSignal) Discover(ctx context.Context, rootPath string, dirEntries
 	// Vercel deploys are typically single-service (static site + serverless functions)
 	// but we model it as one service representing the deployment
 	service := types.Service{
-		Name:      v.filesystem.Base(rootPath),
+		Name:      v.filesystem.Base(v.currentRootPath),
 		Network:   types.NetworkPublic,     // Vercel deployments are web-facing
 		Runtime:   types.RuntimeContinuous, // Web deployments run continuously
 		Build:     types.BuildFromSource,   // Vercel builds from source
-		BuildPath: rootPath,
+		BuildPath: v.currentRootPath,
 		Configs: []types.ConfigRef{
 			{Type: "vercel", Path: configPath},
 		},

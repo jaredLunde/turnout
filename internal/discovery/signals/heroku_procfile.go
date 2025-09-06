@@ -3,7 +3,6 @@ package signals
 import (
 	"bufio"
 	"context"
-	"iter"
 	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
@@ -11,7 +10,10 @@ import (
 )
 
 type HerokuProcfileSignal struct {
-	filesystem fs.FileSystem
+	filesystem      fs.FileSystem
+	currentRootPath string
+	configPaths     []string
+	
 }
 
 func NewHerokuProcfileSignal(filesystem fs.FileSystem) *HerokuProcfileSignal {
@@ -22,13 +24,28 @@ func (h *HerokuProcfileSignal) Confidence() int {
 	return 85 // High confidence - Procfiles define explicit process types
 }
 
-func (h *HerokuProcfileSignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
-	// Look for Procfile
-	configPath, err := fs.FindFile(h.filesystem, rootPath, "Procfile", dirEntries)
-	if err != nil || configPath == "" {
-		return nil, err
+func (h *HerokuProcfileSignal) Reset() {
+	h.configPaths = nil
+	h.currentRootPath = ""
+}
+
+func (h *HerokuProcfileSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+	h.currentRootPath = rootPath
+	
+	if !entry.IsDir() && strings.EqualFold(entry.Name(), "Procfile") {
+		configPath := h.filesystem.Join(rootPath, entry.Name())
+		h.configPaths = append(h.configPaths, configPath)
+	}
+	
+	return nil
+}
+
+func (h *HerokuProcfileSignal) GenerateServices(ctx context.Context) ([]types.Service, error) {
+	if len(h.configPaths) == 0 {
+		return nil, nil
 	}
 
+	configPath := h.configPaths[0]
 	processes, err := h.parseProcfile(configPath)
 	if err != nil {
 		return nil, err
@@ -41,7 +58,7 @@ func (h *HerokuProcfileSignal) Discover(ctx context.Context, rootPath string, di
 			Network:   determineNetworkFromProcfile(processType),
 			Runtime:   determineRuntimeFromProcfile(processType, command),
 			Build:     types.BuildFromSource, // Heroku builds from source
-			BuildPath: rootPath,
+			BuildPath: h.currentRootPath,
 			Configs: []types.ConfigRef{
 				{Type: "procfile", Path: configPath},
 			},

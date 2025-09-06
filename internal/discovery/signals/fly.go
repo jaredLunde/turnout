@@ -2,7 +2,7 @@ package signals
 
 import (
 	"context"
-	"iter"
+	"strings"
 
 	"github.com/BurntSushi/toml"
 	"github.com/railwayapp/turnout/internal/discovery/types"
@@ -10,7 +10,9 @@ import (
 )
 
 type FlySignal struct {
-	filesystem fs.FileSystem
+	filesystem      fs.FileSystem
+	currentRootPath string
+	configPaths     []string // all found fly.toml files
 }
 
 func NewFlySignal(filesystem fs.FileSystem) *FlySignal {
@@ -21,31 +23,49 @@ func (f *FlySignal) Confidence() int {
 	return 95 // Highest confidence - Fly configs are explicit production deployment specs
 }
 
-func (f *FlySignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
-	// Look for fly.toml
-	configPath, err := fs.FindFile(f.filesystem, rootPath, "fly.toml", dirEntries)
-	if err != nil || configPath == "" {
-		return nil, err
+func (f *FlySignal) Reset() {
+	f.configPaths = nil
+	f.currentRootPath = ""
+}
+
+func (f *FlySignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+	f.currentRootPath = rootPath
+	
+	if !entry.IsDir() && strings.EqualFold(entry.Name(), "fly.toml") {
+		configPath := f.filesystem.Join(rootPath, entry.Name())
+		f.configPaths = append(f.configPaths, configPath)
+	}
+	
+	return nil
+}
+
+func (f *FlySignal) GenerateServices(ctx context.Context) ([]types.Service, error) {
+	if len(f.configPaths) == 0 {
+		return nil, nil
 	}
 
-	config, err := f.parseFlyConfig(configPath)
-	if err != nil {
-		return nil, err
+	var services []types.Service
+	for _, configPath := range f.configPaths {
+		config, err := f.parseFlyConfig(configPath)
+		if err != nil {
+			continue // Skip broken configs
+		}
+
+		// Fly.io apps are typically single-service (like Railway)
+		service := types.Service{
+			Name:      f.filesystem.Base(f.currentRootPath), // Use directory name for consistency
+			Network:   determineNetworkFromFly(config),
+			Runtime:   types.RuntimeContinuous, // Fly services are continuous
+			Build:     determineBuildFromFly(config),
+			BuildPath: f.currentRootPath, // Fly builds from the directory containing fly.toml
+			Configs: []types.ConfigRef{
+				{Type: "fly", Path: configPath},
+			},
+		}
+		services = append(services, service)
 	}
 
-	// Fly.io apps are typically single-service (like Railway)
-	service := types.Service{
-		Name:      f.filesystem.Base(rootPath), // Use directory name for consistency
-		Network:   determineNetworkFromFly(config),
-		Runtime:   types.RuntimeContinuous, // Fly services are continuous
-		Build:     determineBuildFromFly(config),
-		BuildPath: rootPath, // Fly builds from the directory containing fly.toml
-		Configs: []types.ConfigRef{
-			{Type: "fly", Path: configPath},
-		},
-	}
-
-	return []types.Service{service}, nil
+	return services, nil
 }
 
 // FlyConfig represents the fly.toml configuration structure

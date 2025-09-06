@@ -3,7 +3,6 @@ package signals
 import (
 	"context"
 	"encoding/json"
-	"iter"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -12,7 +11,10 @@ import (
 )
 
 type RailwaySignal struct {
-	filesystem fs.FileSystem
+	filesystem      fs.FileSystem
+	currentRootPath string
+	configPaths     []string
+	
 }
 
 func NewRailwaySignal(filesystem fs.FileSystem) *RailwaySignal {
@@ -23,13 +25,36 @@ func (r *RailwaySignal) Confidence() int {
 	return 95 // Highest confidence - Railway configs are explicit production deployment specs
 }
 
-func (r *RailwaySignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
-	// Look for Railway config files
-	configPath, err := r.findRailwayConfig(rootPath, dirEntries)
-	if err != nil || configPath == "" {
-		return nil, err
+func (r *RailwaySignal) Reset() {
+	r.configPaths = nil
+	r.currentRootPath = ""
+}
+
+func (r *RailwaySignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+	r.currentRootPath = rootPath
+	
+	if !entry.IsDir() {
+		// Check for railway.json first (higher precedence), then railway.toml
+		if strings.EqualFold(entry.Name(), "railway.json") {
+			configPath := r.filesystem.Join(rootPath, entry.Name())
+			r.configPaths = append(r.configPaths, configPath)
+		} else if strings.EqualFold(entry.Name(), "railway.toml") && len(r.configPaths) == 0 {
+			// Only set if we haven't already found railway.json
+			configPath := r.filesystem.Join(rootPath, entry.Name())
+			r.configPaths = append(r.configPaths, configPath)
+		}
+	}
+	
+	return nil
+}
+
+func (r *RailwaySignal) GenerateServices(ctx context.Context) ([]types.Service, error) {
+	if len(r.configPaths) == 0 {
+		return nil, nil
 	}
 
+	// Use first config found
+	configPath := r.configPaths[0]
 	config, err := r.parseRailwayConfig(configPath)
 	if err != nil {
 		return nil, err
@@ -37,30 +62,17 @@ func (r *RailwaySignal) Discover(ctx context.Context, rootPath string, dirEntrie
 
 	// Railway config defines a single service (unlike compose which can have multiple)
 	service := types.Service{
-		Name:      r.inferServiceNameFromPath(rootPath),
+		Name:      r.inferServiceNameFromPath(r.currentRootPath),
 		Network:   determineNetworkFromRailway(config),
 		Runtime:   types.RuntimeContinuous, // Railway services are continuous
 		Build:     determineBuildFromRailway(config),
-		BuildPath: rootPath, // Railway builds from the directory containing the config
+		BuildPath: r.currentRootPath, // Railway builds from the directory containing the config
 		Configs: []types.ConfigRef{
 			{Type: "railway", Path: configPath},
 		},
 	}
 
 	return []types.Service{service}, nil
-}
-
-func (r *RailwaySignal) findRailwayConfig(rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) (string, error) {
-	// Check for railway.json first, then railway.toml
-	if found, err := fs.FindFile(r.filesystem, rootPath, "railway.json", dirEntries); err == nil && found != "" {
-		return found, nil
-	}
-
-	if found, err := fs.FindFile(r.filesystem, rootPath, "railway.toml", dirEntries); err == nil && found != "" {
-		return found, nil
-	}
-
-	return "", nil
 }
 
 // RailwayConfig represents the Railway config-as-code schema
