@@ -2,6 +2,9 @@ package discovery
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/signals"
 	"github.com/railwayapp/turnout/internal/discovery/types"
@@ -55,18 +58,26 @@ type serviceWithSignal struct {
 }
 
 func (sd *ServiceDiscovery) Discover(ctx context.Context, rootPath string) ([]types.Service, error) {
+	// Find all potential service directories recursively
+	serviceDirs := sd.findServiceDirectories(rootPath, 4)
+	
 	var results []signalResult
-
-	for _, signal := range sd.signals {
-		services, err := signal.Discover(ctx, rootPath)
-		if err != nil {
-			continue // Skip failed signals, don't fail entire discovery
+	
+	// Run all signals on all discovered directories
+	for _, dir := range serviceDirs {
+		for _, signal := range sd.signals {
+			services, err := signal.Discover(ctx, dir)
+			if err != nil {
+				continue // Skip failed signals, don't fail entire discovery
+			}
+			if len(services) > 0 {
+				results = append(results, signalResult{
+					services:   services, 
+					confidence: signal.Confidence(),
+					signal:     signal,
+				})
+			}
 		}
-		results = append(results, signalResult{
-			services:   services, 
-			confidence: signal.Confidence(),
-			signal:     signal,
-		})
 	}
 
 	// Merge services with confidence-based triangulation
@@ -127,4 +138,98 @@ func triangulateServices(results []signalResult) []types.Service {
 	}
 	
 	return mergedServices
+}
+
+func (sd *ServiceDiscovery) findServiceDirectories(rootPath string, maxDepth int) []string {
+	var dirs []string
+	
+	err := filepath.WalkDir(rootPath, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return nil // Skip directories we can't read
+		}
+		
+		if !d.IsDir() {
+			return nil
+		}
+		
+		// Calculate depth relative to root
+		relPath, err := filepath.Rel(rootPath, path)
+		if err != nil {
+			return nil
+		}
+		
+		depth := strings.Count(relPath, string(filepath.Separator))
+		if depth > maxDepth {
+			return filepath.SkipDir
+		}
+		
+		// Comprehensive ignore list
+		dirName := d.Name()
+		if sd.shouldIgnoreDirectory(dirName) {
+			return filepath.SkipDir
+		}
+		
+		// Add this directory as a potential service location
+		dirs = append(dirs, path)
+		return nil
+	})
+	
+	if err != nil {
+		// Fallback to just root if walking fails
+		return []string{rootPath}
+	}
+	
+	return dirs
+}
+
+func (sd *ServiceDiscovery) shouldIgnoreDirectory(dirName string) bool {
+	// Comprehensive ignore list
+	ignorePatterns := []string{
+		// Version control
+		".git", ".svn", ".hg", ".bzr",
+		
+		// Dependencies
+		"node_modules", "vendor", "bower_components", 
+		"__pycache__", ".pytest_cache", "venv", ".venv", "env", ".env",
+		"target", "deps", "_build", ".mix",
+		
+		// Build outputs
+		"dist", "build", "out", ".next", ".nuxt", ".output", 
+		"public", "static", "assets", ".vercel", ".netlify",
+		"bin", "obj", "Debug", "Release", "x64", "x86",
+		
+		// IDE/Editor
+		".vscode", ".idea", ".vs", ".atom", ".sublime-project",
+		".eclipse", ".metadata", "*.xcworkspace", "*.xcodeproj",
+		
+		// OS
+		".DS_Store", "Thumbs.db", "Desktop.ini",
+		
+		// Temporary
+		"tmp", "temp", ".tmp", ".temp", "cache", ".cache",
+		"logs", ".logs", "coverage", ".coverage", ".nyc_output",
+		
+		// Config
+		".sass-cache", ".parcel-cache", ".turborepo", 
+		".rush", ".pnp", ".yarn",
+		
+		// Documentation (usually not services)
+		"docs", "documentation", "doc", "man", "examples", "demo",
+		"test", "tests", "__tests__", "spec", "__spec__",
+	}
+	
+	// Check exact matches
+	for _, pattern := range ignorePatterns {
+		if strings.EqualFold(dirName, pattern) {
+			return true
+		}
+	}
+	
+	// Check prefixes
+	if strings.HasPrefix(dirName, ".") && len(dirName) > 1 {
+		// Allow "." (current dir) but ignore other dotfiles
+		return true
+	}
+	
+	return false
 }
