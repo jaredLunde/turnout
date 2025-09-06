@@ -3,6 +3,7 @@ package signals
 import (
 	"bufio"
 	"context"
+	"iter"
 	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
@@ -21,7 +22,7 @@ func (h *HerokuProcfileSignal) Confidence() int {
 	return 85 // High confidence - Procfiles define explicit process types
 }
 
-func (h *HerokuProcfileSignal) Discover(ctx context.Context, rootPath string, dirEntries []fs.DirEntry) ([]types.Service, error) {
+func (h *HerokuProcfileSignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
 	// Look for Procfile
 	configPath, err := fs.FindFileInEntries(h.filesystem, rootPath, "Procfile", dirEntries)
 	if err != nil || configPath == "" {

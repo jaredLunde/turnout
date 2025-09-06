@@ -2,6 +2,7 @@ package signals
 
 import (
 	"context"
+	"iter"
 
 	"github.com/BurntSushi/toml"
 	"github.com/railwayapp/turnout/internal/discovery/types"
@@ -20,7 +21,7 @@ func (n *NetlifySignal) Confidence() int {
 	return 95 // Highest confidence - Netlify configs are explicit production deployment specs
 }
 
-func (n *NetlifySignal) Discover(ctx context.Context, rootPath string, dirEntries []fs.DirEntry) ([]types.Service, error) {
+func (n *NetlifySignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
 	// Look for netlify.toml
 	configPath, err := fs.FindFileInEntries(n.filesystem, rootPath, "netlify.toml", dirEntries)
 	if err != nil || configPath == "" {

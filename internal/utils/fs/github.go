@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"iter"
 	"net/http"
 	"os"
 	"path"
@@ -107,6 +108,7 @@ type GitHubFS struct {
 	basePath   string // optional subdirectory to start from
 	zipReader  *zip.ReadCloser
 	repoPrefix string // the prefix GitHub adds to zip entries (e.g., "repo-main/")
+	pathIndex  map[string][]string // directory -> child names (minimal index, just strings)
 	once       sync.Once
 	initErr    error
 }
@@ -134,12 +136,13 @@ func NewGitHubFSWithPath(owner, repo, ref, basePath string, token string) *GitHu
 	}
 	
 	return &GitHubFS{
-		client:   client,
-		ctx:      ctx,
-		owner:    owner,
-		repo:     repo,
-		ref:      ref,
-		basePath: basePath,
+		client:    client,
+		ctx:       ctx,
+		owner:     owner,
+		repo:      repo,
+		ref:       ref,
+		basePath:  basePath,
+		pathIndex: make(map[string][]string),
 	}
 }
 
@@ -176,8 +179,9 @@ func (gfs *GitHubFS) downloadAndIndex() error {
 	}
 	gfs.zipReader = zipReader
 	
-	// Find the repo prefix by looking at first entry
+	// Find the repo prefix and build lightweight path index
 	gfs.findRepoPrefix()
+	gfs.buildPathIndex()
 	
 	return nil
 }
@@ -229,6 +233,42 @@ func (gfs *GitHubFS) findRepoPrefix() {
 	}
 }
 
+// buildPathIndex creates minimal directory index (just strings, not zip entries)
+func (gfs *GitHubFS) buildPathIndex() {
+	for _, f := range gfs.zipReader.File {
+		// Remove repo prefix to get clean path
+		cleanPath := strings.TrimPrefix(f.Name, gfs.repoPrefix)
+		cleanPath = strings.Trim(cleanPath, "/")
+		
+		if cleanPath == "" {
+			continue // Skip root
+		}
+		
+		// Convert to forward slashes for consistency
+		cleanPath = filepath.ToSlash(cleanPath)
+		
+		// Get parent directory and child name
+		parentDir := path.Dir(cleanPath)
+		if parentDir == "." {
+			parentDir = ""
+		}
+		childName := path.Base(cleanPath)
+		
+		// Add child name to parent's list if not already present (just strings)
+		children := gfs.pathIndex[parentDir]
+		found := false
+		for _, existing := range children {
+			if existing == childName {
+				found = true
+				break
+			}
+		}
+		if !found {
+			gfs.pathIndex[parentDir] = append(children, childName)
+		}
+	}
+}
+
 // Add cleanup method
 func (gfs *GitHubFS) Cleanup() error {
 	if gfs.zipReader != nil {
@@ -269,78 +309,56 @@ func (gfs *GitHubFS) ReadFile(name string) ([]byte, error) {
 	
 	name = gfs.resolvePath(name)
 	
-	// Find file by scanning zip entries
+	// Use zip reader's built-in Open method (has internal indexing)
 	targetPath := gfs.repoPrefix + name
-	for _, f := range gfs.zipReader.File {
-		if !f.FileInfo().IsDir() && f.Name == targetPath {
-			reader, err := f.Open()
-			if err != nil {
-				return nil, fmt.Errorf("failed to open file in zip: %w", err)
-			}
-			defer reader.Close()
-			return io.ReadAll(reader)
-		}
+	file, err := gfs.zipReader.Open(targetPath)
+	if err != nil {
+		return nil, fmt.Errorf("file not found: %s", name)
 	}
+	defer file.Close()
 	
-	return nil, fmt.Errorf("file not found: %s", name)
+	return io.ReadAll(file)
 }
 
-func (gfs *GitHubFS) ReadDir(name string) ([]DirEntry, error) {
-	if err := gfs.ensureInitialized(); err != nil {
-		return nil, err
+func (gfs *GitHubFS) ReadDir(name string) iter.Seq2[DirEntry, error] {
+	return func(yield func(DirEntry, error) bool) {
+		if err := gfs.ensureInitialized(); err != nil {
+			yield(nil, err)
+			return
+		}
+		
+		// Validate and resolve path
+		if err := gfs.validatePath(name); err != nil {
+			yield(nil, err)
+			return
+		}
+		
+		name = gfs.resolvePath(name)
+		
+		// Handle root directory special case
+		if name == "." {
+			name = ""
+		}
+		
+		// Get children from minimal path index (just strings)
+		children, exists := gfs.pathIndex[name]
+		if !exists {
+			yield(nil, fmt.Errorf("directory not found: %s", name))
+			return
+		}
+		
+		// Yield lightweight DirEntry objects without allocating slice
+		for _, childName := range children {
+			entry := &lightweightDirEntry{
+				name:       childName,
+				gfs:        gfs,
+				parentPath: name,
+			}
+			if !yield(entry, nil) {
+				return // Consumer stopped iteration
+			}
+		}
 	}
-	
-	// Validate and resolve path
-	if err := gfs.validatePath(name); err != nil {
-		return nil, err
-	}
-	
-	name = gfs.resolvePath(name)
-	
-	// Build target directory prefix
-	targetPrefix := gfs.repoPrefix
-	if name != "" && name != "." {
-		targetPrefix += name + "/"
-	}
-	
-	// Scan zip entries to find direct children of this directory
-	var entries []DirEntry
-	seen := make(map[string]bool)
-	
-	for _, f := range gfs.zipReader.File {
-		// Skip if not in target directory
-		if !strings.HasPrefix(f.Name, targetPrefix) {
-			continue
-		}
-		
-		// Get relative path within target directory
-		relPath := strings.TrimPrefix(f.Name, targetPrefix)
-		if relPath == "" {
-			continue // Skip the directory itself
-		}
-		
-		// For direct children, get first path component
-		parts := strings.SplitN(strings.Trim(relPath, "/"), "/", 2)
-		if len(parts) == 0 {
-			continue
-		}
-		
-		childName := parts[0]
-		if childName == "" {
-			continue
-		}
-		
-		// Skip if we've already seen this child
-		if seen[childName] {
-			continue
-		}
-		seen[childName] = true
-		
-		// This entry represents a direct child - add it
-		entries = append(entries, &zipDirEntry{f})
-	}
-	
-	return entries, nil
 }
 
 func (gfs *GitHubFS) Stat(name string) (FileInfo, error) {
@@ -386,30 +404,60 @@ func (gfs *GitHubFS) Stat(name string) (FileInfo, error) {
 	return nil, fmt.Errorf("path not found: %s", name)
 }
 
-// zipDirEntry wraps zip.File to implement DirEntry
-type zipDirEntry struct {
-	*zip.File
+// lightweightDirEntry implements DirEntry without holding zip.File references
+type lightweightDirEntry struct {
+	name       string
+	gfs        *GitHubFS
+	parentPath string
 }
 
-func (e *zipDirEntry) Name() string {
-	name := strings.TrimSuffix(filepath.Base(e.File.Name), "/")
-	return name
+func (e *lightweightDirEntry) Name() string {
+	return e.name
 }
 
-func (e *zipDirEntry) IsDir() bool {
-	return e.File.FileInfo().IsDir()
+func (e *lightweightDirEntry) IsDir() bool {
+	// Check if this name exists as a directory in our path index
+	childPath := e.parentPath
+	if childPath != "" {
+		childPath += "/"
+	}
+	childPath += e.name
+	
+	_, isDir := e.gfs.pathIndex[childPath]
+	return isDir
 }
 
-func (e *zipDirEntry) Type() fs.FileMode {
+func (e *lightweightDirEntry) Type() fs.FileMode {
 	if e.IsDir() {
 		return fs.ModeDir
 	}
 	return 0
 }
 
-func (e *zipDirEntry) Info() (FileInfo, error) {
-	return &zipFileInfo{e.File, false, ""}, nil
+func (e *lightweightDirEntry) Info() (FileInfo, error) {
+	return &lightweightFileInfo{
+		name:  e.name,
+		isDir: e.IsDir(),
+	}, nil
 }
+
+// lightweightFileInfo implements FileInfo without zip.File references
+type lightweightFileInfo struct {
+	name  string
+	isDir bool
+}
+
+func (fi *lightweightFileInfo) Name() string     { return fi.name }
+func (fi *lightweightFileInfo) Size() int64      { return 0 } // We don't need size for service discovery
+func (fi *lightweightFileInfo) Mode() fs.FileMode {
+	if fi.isDir {
+		return fs.ModeDir | 0755
+	}
+	return 0644
+}
+func (fi *lightweightFileInfo) ModTime() time.Time { return time.Time{} }
+func (fi *lightweightFileInfo) IsDir() bool         { return fi.isDir }
+func (fi *lightweightFileInfo) Sys() interface{}   { return nil }
 
 // zipFileInfo wraps zip.File to implement FileInfo
 type zipFileInfo struct {
@@ -507,13 +555,11 @@ func (gfs *GitHubFS) walkRecursive(dir string, info FileInfo, fn WalkFunc, depth
 		return nil
 	}
 	
-	// Read directory contents
-	entries, err := gfs.ReadDir(dir)
-	if err != nil {
-		return fn(dir, info, err)
-	}
-	
-	for _, entry := range entries {
+	// Process directory contents using iterator
+	for entry, err := range gfs.ReadDir(dir) {
+		if err != nil {
+			return fn(dir, info, err)
+		}
 		entryPath := gfs.Join(dir, entry.Name())
 		entryInfo, err := entry.Info()
 		if err != nil {

@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"iter"
 	"os"
 	"path/filepath"
 )
@@ -17,17 +18,21 @@ func (lfs *LocalFS) ReadFile(name string) ([]byte, error) {
 	return os.ReadFile(name)
 }
 
-func (lfs *LocalFS) ReadDir(name string) ([]DirEntry, error) {
-	entries, err := os.ReadDir(name)
-	if err != nil {
-		return nil, err
+func (lfs *LocalFS) ReadDir(name string) iter.Seq2[DirEntry, error] {
+	return func(yield func(DirEntry, error) bool) {
+		entries, err := os.ReadDir(name)
+		if err != nil {
+			yield(nil, err)
+			return
+		}
+		
+		for _, entry := range entries {
+			localEntry := &localDirEntry{entry}
+			if !yield(localEntry, nil) {
+				return // Consumer stopped iteration
+			}
+		}
 	}
-	
-	result := make([]DirEntry, len(entries))
-	for i, entry := range entries {
-		result[i] = &localDirEntry{entry}
-	}
-	return result, nil
 }
 
 func (lfs *LocalFS) Stat(name string) (FileInfo, error) {

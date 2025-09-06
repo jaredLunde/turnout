@@ -1,19 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(go get:*)",
-      "WebFetch(domain:backboard.railway.com)",
-      "Bash(go run:*)",
-      "Bash(go build:*)",
-      "Bash(./turnout github://vercel/examples/tree/main/nextjs)",
-      "Bash(./turnout github://vercel/examples/tree/main/starter/nextjs)",
-      "Bash(./turnout github://vercel/next.js)",
-      "Bash(./turnout github://vercel/examples/tree/main/solutions/blog)",
-      "Bash(go clean:*)",
-      "Bash(find:*)",
-      "Bash(sed:*)",
-      "Bash(./turnout github://vercel/examples)",
-      "Bash(time:*)"
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

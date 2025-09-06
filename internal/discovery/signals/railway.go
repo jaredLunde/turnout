@@ -3,6 +3,7 @@ package signals
 import (
 	"context"
 	"encoding/json"
+	"iter"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -22,7 +23,7 @@ func (r *RailwaySignal) Confidence() int {
 	return 95 // Highest confidence - Railway configs are explicit production deployment specs
 }
 
-func (r *RailwaySignal) Discover(ctx context.Context, rootPath string, dirEntries []fs.DirEntry) ([]types.Service, error) {
+func (r *RailwaySignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
 	// Look for Railway config files
 	configPath, err := r.findRailwayConfig(rootPath, dirEntries)
 	if err != nil || configPath == "" {
@@ -49,7 +50,7 @@ func (r *RailwaySignal) Discover(ctx context.Context, rootPath string, dirEntrie
 	return []types.Service{service}, nil
 }
 
-func (r *RailwaySignal) findRailwayConfig(rootPath string, dirEntries []fs.DirEntry) (string, error) {
+func (r *RailwaySignal) findRailwayConfig(rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) (string, error) {
 	// Check for railway.json first, then railway.toml
 	if found, err := fs.FindFileInEntries(r.filesystem, rootPath, "railway.json", dirEntries); err == nil && found != "" {
 		return found, nil

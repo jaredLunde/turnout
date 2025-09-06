@@ -2,6 +2,7 @@ package signals
 
 import (
 	"context"
+	"iter"
 	"path/filepath"
 	"strings"
 
@@ -21,7 +22,7 @@ func (d *DockerfileSignal) Confidence() int {
 	return 70 // Moderate confidence - just indicates buildable service, not deployment config
 }
 
-func (d *DockerfileSignal) Discover(ctx context.Context, rootPath string, dirEntries []fs.DirEntry) ([]types.Service, error) {
+func (d *DockerfileSignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
 	var services []types.Service
 
 	// Check for Dockerfile in current directory

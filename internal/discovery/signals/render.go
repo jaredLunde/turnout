@@ -2,6 +2,7 @@ package signals
 
 import (
 	"context"
+	"iter"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
 	"github.com/railwayapp/turnout/internal/utils/fs"
@@ -20,7 +21,7 @@ func (r *RenderSignal) Confidence() int {
 	return 95 // Highest confidence - Render Blueprints are explicit production deployment specs
 }
 
-func (r *RenderSignal) Discover(ctx context.Context, rootPath string, dirEntries []fs.DirEntry) ([]types.Service, error) {
+func (r *RenderSignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
 	// Look for render.yaml
 	configPath, err := fs.FindFileInEntries(r.filesystem, rootPath, "render.yaml", dirEntries)
 	if err != nil || configPath == "" {

@@ -2,6 +2,7 @@ package fs
 
 import (
 	"io/fs"
+	"iter"
 	"time"
 )
 
@@ -10,8 +11,8 @@ type FileSystem interface {
 	// ReadFile reads the named file and returns its contents
 	ReadFile(name string) ([]byte, error)
 	
-	// ReadDir reads the named directory and returns a list of directory entries
-	ReadDir(name string) ([]DirEntry, error)
+	// ReadDir reads the named directory and returns an iterator over directory entries
+	ReadDir(name string) iter.Seq2[DirEntry, error]
 	
 	// Stat returns a FileInfo describing the named file
 	Stat(name string) (FileInfo, error)

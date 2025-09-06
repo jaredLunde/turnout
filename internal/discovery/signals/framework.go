@@ -2,6 +2,7 @@ package signals
 
 import (
 	"context"
+	"iter"
 	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
@@ -20,7 +21,7 @@ func (f *FrameworkSignal) Confidence() int {
 	return 85 // High confidence - explicit framework configs indicate deployment intent
 }
 
-func (f *FrameworkSignal) Discover(ctx context.Context, rootPath string, dirEntries []fs.DirEntry) ([]types.Service, error) {
+func (f *FrameworkSignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
 	frameworks := f.detectFrameworks(rootPath, dirEntries)
 	
 	var services []types.Service
@@ -49,7 +50,7 @@ type Framework struct {
 	Build      types.Build
 }
 
-func (f *FrameworkSignal) detectFrameworks(rootPath string, dirEntries []fs.DirEntry) []Framework {
+func (f *FrameworkSignal) detectFrameworks(rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) []Framework {
 	var frameworks []Framework
 	
 	// Frontend frameworks (public web services)
@@ -195,7 +196,7 @@ func (f *FrameworkSignal) detectFrameworks(rootPath string, dirEntries []fs.DirE
 	return frameworks
 }
 
-func (f *FrameworkSignal) findConfigFile(rootPath string, dirEntries []fs.DirEntry, filenames ...string) string {
+func (f *FrameworkSignal) findConfigFile(rootPath string, dirEntries iter.Seq2[fs.DirEntry, error], filenames ...string) string {
 	for _, filename := range filenames {
 		if configPath, err := fs.FindFileInEntries(f.filesystem, rootPath, filename, dirEntries); err == nil && configPath != "" {
 			return configPath
@@ -204,8 +205,11 @@ func (f *FrameworkSignal) findConfigFile(rootPath string, dirEntries []fs.DirEnt
 	return ""
 }
 
-func (f *FrameworkSignal) hasDirectory(rootPath, dirName string, dirEntries []fs.DirEntry) bool {
-	for _, entry := range dirEntries {
+func (f *FrameworkSignal) hasDirectory(rootPath, dirName string, dirEntries iter.Seq2[fs.DirEntry, error]) bool {
+	for entry, err := range dirEntries {
+		if err != nil {
+			continue
+		}
 		if entry.IsDir() && strings.EqualFold(entry.Name(), dirName) {
 			return true
 		}
@@ -213,11 +217,11 @@ func (f *FrameworkSignal) hasDirectory(rootPath, dirName string, dirEntries []fs
 	return false
 }
 
-func (f *FrameworkSignal) hasFile(rootPath, filename string, dirEntries []fs.DirEntry) bool {
+func (f *FrameworkSignal) hasFile(rootPath, filename string, dirEntries iter.Seq2[fs.DirEntry, error]) bool {
 	return f.findConfigFile(rootPath, dirEntries, filename) != ""
 }
 
-func (f *FrameworkSignal) hasSpringBootIndicators(rootPath string, dirEntries []fs.DirEntry) bool {
+func (f *FrameworkSignal) hasSpringBootIndicators(rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) bool {
 	// Look for Spring Boot specific files/directories
 	return f.hasDirectory(rootPath, "src/main/java", dirEntries) || 
 		   f.hasFile(rootPath, "application.properties", dirEntries) ||

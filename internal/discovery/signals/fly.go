@@ -2,6 +2,7 @@ package signals
 
 import (
 	"context"
+	"iter"
 
 	"github.com/BurntSushi/toml"
 	"github.com/railwayapp/turnout/internal/discovery/types"
@@ -20,7 +21,7 @@ func (f *FlySignal) Confidence() int {
 	return 95 // Highest confidence - Fly configs are explicit production deployment specs
 }
 
-func (f *FlySignal) Discover(ctx context.Context, rootPath string, dirEntries []fs.DirEntry) ([]types.Service, error) {
+func (f *FlySignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
 	// Look for fly.toml
 	configPath, err := fs.FindFileInEntries(f.filesystem, rootPath, "fly.toml", dirEntries)
 	if err != nil || configPath == "" {

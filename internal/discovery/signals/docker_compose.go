@@ -2,6 +2,7 @@ package signals
 
 import (
 	"context"
+	"iter"
 	"os"
 	"strings"
 
@@ -23,7 +24,7 @@ func (d *DockerComposeSignal) Confidence() int {
 	return 80 // High confidence - but often used for local dev, not production deployment
 }
 
-func (d *DockerComposeSignal) Discover(ctx context.Context, rootPath string, dirEntries []fs.DirEntry) ([]types.Service, error) {
+func (d *DockerComposeSignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
 	// Try common compose file names
 	composeFiles := []string{
 		"docker-compose.yml",

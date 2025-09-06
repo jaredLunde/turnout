@@ -3,6 +3,7 @@ package signals
 import (
 	"context"
 	"encoding/json"
+	"iter"
 	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
@@ -21,7 +22,7 @@ func (p *PackageSignal) Confidence() int {
 	return 50 // Low confidence - dependencies might be unused or transitive
 }
 
-func (p *PackageSignal) Discover(ctx context.Context, rootPath string, dirEntries []fs.DirEntry) ([]types.Service, error) {
+func (p *PackageSignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
 	frameworks := p.detectFrameworksFromPackages(rootPath, dirEntries)
 	
 	var services []types.Service
@@ -50,7 +51,7 @@ type PackageFramework struct {
 	Build      types.Build
 }
 
-func (p *PackageSignal) detectFrameworksFromPackages(rootPath string, dirEntries []fs.DirEntry) []PackageFramework {
+func (p *PackageSignal) detectFrameworksFromPackages(rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) []PackageFramework {
 	var frameworks []PackageFramework
 	
 	// Node.js package.json
@@ -658,7 +659,7 @@ func (p *PackageSignal) analyzeMix(mixPath string) *PackageFramework {
 }
 
 // Helper functions
-func (p *PackageSignal) findAnyFile(rootPath string, dirEntries []fs.DirEntry, filenames ...string) string {
+func (p *PackageSignal) findAnyFile(rootPath string, dirEntries iter.Seq2[fs.DirEntry, error], filenames ...string) string {
 	for _, filename := range filenames {
 		if path, err := fs.FindFileInEntries(p.filesystem, rootPath, filename, dirEntries); err == nil && path != "" {
 			return path
@@ -670,12 +671,12 @@ func (p *PackageSignal) findAnyFile(rootPath string, dirEntries []fs.DirEntry, f
 func (p *PackageSignal) findGlobFile(rootPath, pattern string) string {
 	// Simple glob for *.csproj - just check common patterns
 	extensions := []string{".csproj", ".vbproj", ".fsproj"}
-	entries, err := p.filesystem.ReadDir(rootPath)
-	if err != nil {
-		return ""
-	}
+	entries := p.filesystem.ReadDir(rootPath)
 	
-	for _, entry := range entries {
+	for entry, err := range entries {
+		if err != nil {
+			continue
+		}
 		if entry.IsDir() {
 			continue
 		}

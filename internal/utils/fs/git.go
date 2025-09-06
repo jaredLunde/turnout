@@ -2,6 +2,7 @@ package fs
 
 import (
 	"fmt"
+	"iter"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -94,13 +95,20 @@ func (gfs *GitFS) ReadFile(name string) ([]byte, error) {
 	return gfs.localFS.ReadFile(fullPath)
 }
 
-func (gfs *GitFS) ReadDir(name string) ([]DirEntry, error) {
-	if err := gfs.ensureCloned(); err != nil {
-		return nil, err
+func (gfs *GitFS) ReadDir(name string) iter.Seq2[DirEntry, error] {
+	return func(yield func(DirEntry, error) bool) {
+		if err := gfs.ensureCloned(); err != nil {
+			yield(nil, err)
+			return
+		}
+		
+		fullPath := gfs.localFS.Join(gfs.localPath, name)
+		for entry, err := range gfs.localFS.ReadDir(fullPath) {
+			if !yield(entry, err) {
+				return
+			}
+		}
 	}
-	
-	fullPath := gfs.localFS.Join(gfs.localPath, name)
-	return gfs.localFS.ReadDir(fullPath)
 }
 
 func (gfs *GitFS) Stat(name string) (FileInfo, error) {

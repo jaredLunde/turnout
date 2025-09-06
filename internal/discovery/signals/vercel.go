@@ -3,6 +3,7 @@ package signals
 import (
 	"context"
 	"encoding/json"
+	"iter"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
 	"github.com/railwayapp/turnout/internal/utils/fs"
@@ -20,7 +21,7 @@ func (v *VercelSignal) Confidence() int {
 	return 95 // Highest confidence - Vercel configs are explicit production deployment specs
 }
 
-func (v *VercelSignal) Discover(ctx context.Context, rootPath string, dirEntries []fs.DirEntry) ([]types.Service, error) {
+func (v *VercelSignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
 	// Look for vercel.json
 	configPath, err := fs.FindFileInEntries(v.filesystem, rootPath, "vercel.json", dirEntries)
 	if err != nil || configPath == "" {

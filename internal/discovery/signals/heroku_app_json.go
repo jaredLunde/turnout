@@ -3,6 +3,7 @@ package signals
 import (
 	"context"
 	"encoding/json"
+	"iter"
 	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
@@ -21,7 +22,7 @@ func (h *HerokuAppJsonSignal) Confidence() int {
 	return 90 // High confidence - app.json defines explicit app configuration
 }
 
-func (h *HerokuAppJsonSignal) Discover(ctx context.Context, rootPath string, dirEntries []fs.DirEntry) ([]types.Service, error) {
+func (h *HerokuAppJsonSignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
 	// Look for app.json
 	configPath, err := fs.FindFileInEntries(h.filesystem, rootPath, "app.json", dirEntries)
 	if err != nil || configPath == "" {
