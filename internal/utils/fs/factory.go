@@ -79,13 +79,37 @@ func parseGitHubURL(u *url.URL) (FileSystem, error) {
 	return NewGitHubFS(owner, repo, ref, token), nil
 }
 
-// parseGitURL parses git://github.com/owner/repo URLs
+// parseGitURL parses git://owner/repo or git://github.com/owner/repo URLs
 func parseGitURL(u *url.URL) (FileSystem, error) {
 	// Format: git://github.com/owner/repo
+	// Or: git://owner/repo (shorthand, assumes github.com)
 	// Or: git://github.com/owner/repo#branch
 	
-	// Reconstruct the full git URL
-	gitURL := fmt.Sprintf("https://%s%s", u.Host, u.Path)
+	var gitURL string
+	
+	// Check if this is a GitHub shorthand format (git://owner/repo)
+	if u.Host != "" && u.Host != "github.com" && strings.Count(u.Path, "/") == 1 {
+		// This is likely git://owner/repo format where host is owner and path is /repo
+		owner := u.Host
+		repo := strings.Trim(u.Path, "/")
+		gitURL = fmt.Sprintf("https://github.com/%s/%s", owner, repo)
+	} else if u.Host == "github.com" || u.Host == "" {
+		// Standard GitHub format: git://github.com/owner/repo
+		if u.Host == "" {
+			// Parse path to extract owner/repo
+			path := strings.Trim(u.Path, "/")
+			parts := strings.Split(path, "/")
+			if len(parts) < 2 {
+				return nil, fmt.Errorf("invalid git URL format, expected: git://owner/repo or git://github.com/owner/repo")
+			}
+			gitURL = fmt.Sprintf("https://github.com/%s/%s", parts[0], parts[1])
+		} else {
+			gitURL = fmt.Sprintf("https://%s%s", u.Host, u.Path)
+		}
+	} else {
+		// Other git hosting services
+		gitURL = fmt.Sprintf("https://%s%s", u.Host, u.Path)
+	}
 	
 	ref := ""
 	if u.Fragment != "" {

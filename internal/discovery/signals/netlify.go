@@ -23,7 +23,7 @@ func (n *NetlifySignal) Confidence() int {
 
 func (n *NetlifySignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
 	// Look for netlify.toml
-	configPath, err := fs.FindFileInEntries(n.filesystem, rootPath, "netlify.toml", dirEntries)
+	configPath, err := fs.FindFile(n.filesystem, rootPath, "netlify.toml", dirEntries)
 	if err != nil || configPath == "" {
 		return nil, err
 	}

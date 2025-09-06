@@ -23,7 +23,7 @@ func (r *RenderSignal) Confidence() int {
 
 func (r *RenderSignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
 	// Look for render.yaml
-	configPath, err := fs.FindFileInEntries(r.filesystem, rootPath, "render.yaml", dirEntries)
+	configPath, err := fs.FindFile(r.filesystem, rootPath, "render.yaml", dirEntries)
 	if err != nil || configPath == "" {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func (r *RenderSignal) Discover(ctx context.Context, rootPath string, dirEntries
 	}
 
 	var services []types.Service
-	
+
 	// Add regular services
 	for _, renderService := range config.Services {
 		service := types.Service{
@@ -55,15 +55,15 @@ func (r *RenderSignal) Discover(ctx context.Context, rootPath string, dirEntries
 
 		services = append(services, service)
 	}
-	
+
 	// Add databases as services
 	for _, renderDB := range config.Databases {
 		service := types.Service{
 			Name:    renderDB.Name,
-			Network: types.NetworkPrivate, // Databases are typically private
+			Network: types.NetworkPrivate,    // Databases are typically private
 			Runtime: types.RuntimeContinuous, // Databases run continuously
-			Build:   types.BuildFromImage, // Databases use pre-built images
-			Image:   "postgres", // Could be more specific based on version
+			Build:   types.BuildFromImage,    // Databases use pre-built images
+			Image:   "postgres",              // Could be more specific based on version
 			Configs: []types.ConfigRef{
 				{Type: "render", Path: configPath},
 			},
@@ -83,27 +83,27 @@ type RenderConfig struct {
 }
 
 type RenderService struct {
-	Name         string              `yaml:"name"`
-	Type         string              `yaml:"type"`
-	Runtime      string              `yaml:"runtime,omitempty"`
-	Plan         string              `yaml:"plan,omitempty"`
-	Region       string              `yaml:"region,omitempty"`
-	Repo         string              `yaml:"repo,omitempty"`
-	Branch       string              `yaml:"branch,omitempty"`
-	BuildCommand string              `yaml:"buildCommand,omitempty"`
-	StartCommand string              `yaml:"startCommand,omitempty"`
-	Schedule     string              `yaml:"schedule,omitempty"`
-	Domains      []string            `yaml:"domains,omitempty"`
-	HealthCheckPath string           `yaml:"healthCheckPath,omitempty"`
-	Image        *RenderImage        `yaml:"image,omitempty"`
-	Scaling      *RenderScaling      `yaml:"scaling,omitempty"`
-	NumInstances int                 `yaml:"numInstances,omitempty"`
-	EnvVars      []RenderEnvVar      `yaml:"envVars,omitempty"`
+	Name            string         `yaml:"name"`
+	Type            string         `yaml:"type"`
+	Runtime         string         `yaml:"runtime,omitempty"`
+	Plan            string         `yaml:"plan,omitempty"`
+	Region          string         `yaml:"region,omitempty"`
+	Repo            string         `yaml:"repo,omitempty"`
+	Branch          string         `yaml:"branch,omitempty"`
+	BuildCommand    string         `yaml:"buildCommand,omitempty"`
+	StartCommand    string         `yaml:"startCommand,omitempty"`
+	Schedule        string         `yaml:"schedule,omitempty"`
+	Domains         []string       `yaml:"domains,omitempty"`
+	HealthCheckPath string         `yaml:"healthCheckPath,omitempty"`
+	Image           *RenderImage   `yaml:"image,omitempty"`
+	Scaling         *RenderScaling `yaml:"scaling,omitempty"`
+	NumInstances    int            `yaml:"numInstances,omitempty"`
+	EnvVars         []RenderEnvVar `yaml:"envVars,omitempty"`
 }
 
 type RenderImage struct {
-	URL   string             `yaml:"url"`
-	Creds *RenderImageCreds  `yaml:"creds,omitempty"`
+	URL   string            `yaml:"url"`
+	Creds *RenderImageCreds `yaml:"creds,omitempty"`
 }
 
 type RenderImageCreds struct {
@@ -115,10 +115,10 @@ type RenderRegistryCred struct {
 }
 
 type RenderScaling struct {
-	MinInstances         int `yaml:"minInstances"`
-	MaxInstances         int `yaml:"maxInstances"`
-	TargetCPUPercent     int `yaml:"targetCPUPercent,omitempty"`
-	TargetMemoryPercent  int `yaml:"targetMemoryPercent,omitempty"`
+	MinInstances        int `yaml:"minInstances"`
+	MaxInstances        int `yaml:"maxInstances"`
+	TargetCPUPercent    int `yaml:"targetCPUPercent,omitempty"`
+	TargetMemoryPercent int `yaml:"targetMemoryPercent,omitempty"`
 }
 
 type RenderEnvVar struct {
@@ -137,9 +137,9 @@ type RenderEnvFromDB struct {
 }
 
 type RenderEnvFromService struct {
-	Name     string `yaml:"name"`
-	Type     string `yaml:"type"`
-	Property string `yaml:"property,omitempty"`
+	Name      string `yaml:"name"`
+	Type      string `yaml:"type"`
+	Property  string `yaml:"property,omitempty"`
 	EnvVarKey string `yaml:"envVarKey,omitempty"`
 }
 
@@ -177,22 +177,22 @@ func determineNetworkFromRender(service RenderService) types.Network {
 	if service.Type == "web" && len(service.Domains) > 0 {
 		return types.NetworkPublic
 	}
-	
+
 	// Web services with health checks are likely public
 	if service.Type == "web" && service.HealthCheckPath != "" {
 		return types.NetworkPublic
 	}
-	
+
 	// Web services are generally public by default
 	if service.Type == "web" {
 		return types.NetworkPublic
 	}
-	
+
 	// Private services are explicitly private
 	if service.Type == "pserv" {
 		return types.NetworkPrivate
 	}
-	
+
 	// Workers, cron jobs, etc. are typically private
 	return types.NetworkPrivate
 }
@@ -202,7 +202,7 @@ func determineRuntimeFromRender(service RenderService) types.Runtime {
 	if service.Type == "cron" || service.Schedule != "" {
 		return types.RuntimeScheduled
 	}
-	
+
 	// Everything else is continuous
 	return types.RuntimeContinuous
 }
@@ -212,7 +212,7 @@ func determineBuildFromRender(service RenderService) types.Build {
 	if service.Image != nil && service.Image.URL != "" {
 		return types.BuildFromImage
 	}
-	
+
 	// Otherwise, assume build from source
 	return types.BuildFromSource
 }

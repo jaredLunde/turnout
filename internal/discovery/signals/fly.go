@@ -23,7 +23,7 @@ func (f *FlySignal) Confidence() int {
 
 func (f *FlySignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
 	// Look for fly.toml
-	configPath, err := fs.FindFileInEntries(f.filesystem, rootPath, "fly.toml", dirEntries)
+	configPath, err := fs.FindFile(f.filesystem, rootPath, "fly.toml", dirEntries)
 	if err != nil || configPath == "" {
 		return nil, err
 	}
@@ -50,14 +50,14 @@ func (f *FlySignal) Discover(ctx context.Context, rootPath string, dirEntries it
 
 // FlyConfig represents the fly.toml configuration structure
 type FlyConfig struct {
-	App           string           `toml:"app"`
-	PrimaryRegion string           `toml:"primary_region,omitempty"`
-	Build         *FlyBuild        `toml:"build,omitempty"`
-	Deploy        *FlyDeploy       `toml:"deploy,omitempty"`
+	App           string            `toml:"app"`
+	PrimaryRegion string            `toml:"primary_region,omitempty"`
+	Build         *FlyBuild         `toml:"build,omitempty"`
+	Deploy        *FlyDeploy        `toml:"deploy,omitempty"`
 	Env           map[string]string `toml:"env,omitempty"`
-	Services      []FlyService     `toml:"services,omitempty"`
-	HTTPService   *FlyHTTPService  `toml:"http_service,omitempty"`
-	VM            []FlyVM          `toml:"vm,omitempty"`
+	Services      []FlyService      `toml:"services,omitempty"`
+	HTTPService   *FlyHTTPService   `toml:"http_service,omitempty"`
+	VM            []FlyVM           `toml:"vm,omitempty"`
 }
 
 type FlyBuild struct {
@@ -77,12 +77,12 @@ type FlyService struct {
 }
 
 type FlyHTTPService struct {
-	InternalPort        int    `toml:"internal_port"`
-	ForceHTTPS          bool   `toml:"force_https,omitempty"`
-	AutoStopMachines    bool   `toml:"auto_stop_machines,omitempty"`
-	AutoStartMachines   bool   `toml:"auto_start_machines,omitempty"`
-	MinMachinesRunning  int    `toml:"min_machines_running,omitempty"`
-	Processes           []string `toml:"processes,omitempty"`
+	InternalPort       int      `toml:"internal_port"`
+	ForceHTTPS         bool     `toml:"force_https,omitempty"`
+	AutoStopMachines   bool     `toml:"auto_stop_machines,omitempty"`
+	AutoStartMachines  bool     `toml:"auto_start_machines,omitempty"`
+	MinMachinesRunning int      `toml:"min_machines_running,omitempty"`
+	Processes          []string `toml:"processes,omitempty"`
 }
 
 type FlyVM struct {
@@ -109,12 +109,12 @@ func determineNetworkFromFly(config *FlyConfig) types.Network {
 	if config.HTTPService != nil {
 		return types.NetworkPublic
 	}
-	
+
 	// If there are services configured, likely public
 	if len(config.Services) > 0 {
 		return types.NetworkPublic
 	}
-	
+
 	// Conservative default
 	return types.NetworkPrivate
 }
@@ -124,7 +124,7 @@ func determineBuildFromFly(config *FlyConfig) types.Build {
 	if config.Build != nil && config.Build.Image != "" {
 		return types.BuildFromImage
 	}
-	
+
 	// Otherwise, assume build from source (Fly's common use case)
 	return types.BuildFromSource
 }

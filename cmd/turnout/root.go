@@ -48,7 +48,7 @@ var rootCmd = &cobra.Command{
 		sourcePath := "."
 		if len(args) > 0 {
 			sourcePath = args[0]
-			
+
 			// If user provided a file path, use the parent directory
 			if stat, err := os.Stat(sourcePath); err == nil && !stat.IsDir() {
 				sourcePath = filepath.Dir(sourcePath)
@@ -88,7 +88,7 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.turnout.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.turnout/config.json)")
 	rootCmd.PersistentFlags().StringVar(&cpuprofile, "cpuprofile", "", "write cpu profile to file")
 	rootCmd.PersistentFlags().StringVar(&memprofile, "memprofile", "", "write memory profile to file")
 }
@@ -100,9 +100,9 @@ func initConfig() {
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
-		viper.AddConfigPath(home)
-		viper.SetConfigType("yaml")
-		viper.SetConfigName(".turnout")
+		viper.AddConfigPath(filepath.Join(home, ".turnout"))
+		viper.SetConfigType("json")
+		viper.SetConfigName("config")
 	}
 
 	viper.AutomaticEnv()
@@ -118,12 +118,11 @@ func runPipeline(sourcePath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create filesystem: %w", err)
 	}
-	
+
 	// Clean up git filesystem if needed
 	if gitFS, ok := filesystem.(*fs.GitFS); ok {
 		defer gitFS.Cleanup()
 	}
-	
 
 	// Service discovery - find and triangulate services from multiple signals
 	serviceDiscovery := discovery.NewServiceDiscovery(filesystem)
@@ -134,19 +133,19 @@ func runPipeline(sourcePath string) error {
 
 	fmt.Printf("Discovered %d services:\n", len(services))
 	for _, service := range services {
-		fmt.Printf("  - %s: Network=%s, Runtime=%s, Build=%s\n", 
-			service.Name, 
+		fmt.Printf("  - %s: Network=%s, Runtime=%s, Build=%s\n",
+			service.Name,
 			networkToString(service.Network),
 			runtimeToString(service.Runtime),
 			buildToString(service.Build))
-		
+
 		if service.BuildPath != "" {
 			fmt.Printf("    BuildPath: %s\n", service.BuildPath)
 		}
 		if service.Image != "" {
 			fmt.Printf("    Image: %s\n", service.Image)
 		}
-		
+
 		fmt.Printf("    Config sources (%d):\n", len(service.Configs))
 		for _, config := range service.Configs {
 			fmt.Printf("      - %s: %s\n", config.Type, config.Path)

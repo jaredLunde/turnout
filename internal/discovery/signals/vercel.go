@@ -9,7 +9,7 @@ import (
 	"github.com/railwayapp/turnout/internal/utils/fs"
 )
 
-type VercelSignal struct{
+type VercelSignal struct {
 	filesystem fs.FileSystem
 }
 
@@ -23,7 +23,7 @@ func (v *VercelSignal) Confidence() int {
 
 func (v *VercelSignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
 	// Look for vercel.json
-	configPath, err := fs.FindFileInEntries(v.filesystem, rootPath, "vercel.json", dirEntries)
+	configPath, err := fs.FindFile(v.filesystem, rootPath, "vercel.json", dirEntries)
 	if err != nil || configPath == "" {
 		return nil, err
 	}
@@ -37,9 +37,9 @@ func (v *VercelSignal) Discover(ctx context.Context, rootPath string, dirEntries
 	// but we model it as one service representing the deployment
 	service := types.Service{
 		Name:      v.filesystem.Base(rootPath),
-		Network:   types.NetworkPublic, // Vercel deployments are web-facing
+		Network:   types.NetworkPublic,     // Vercel deployments are web-facing
 		Runtime:   types.RuntimeContinuous, // Web deployments run continuously
-		Build:     types.BuildFromSource, // Vercel builds from source
+		Build:     types.BuildFromSource,   // Vercel builds from source
 		BuildPath: rootPath,
 		Configs: []types.ConfigRef{
 			{Type: "vercel", Path: configPath},
@@ -51,29 +51,29 @@ func (v *VercelSignal) Discover(ctx context.Context, rootPath string, dirEntries
 
 // VercelConfig represents the vercel.json configuration structure
 type VercelConfig struct {
-	Version     int                    `json:"version,omitempty"`
-	Regions     []string              `json:"regions,omitempty"`
-	Builds      []VercelBuild         `json:"builds,omitempty"` // Deprecated
-	Functions   map[string]VercelFunc `json:"functions,omitempty"`
-	Redirects   []VercelRedirect      `json:"redirects,omitempty"`
-	Rewrites    []VercelRewrite       `json:"rewrites,omitempty"`
-	Headers     []VercelHeader        `json:"headers,omitempty"`
-	Env         map[string]string     `json:"env,omitempty"`
-	Build       *VercelBuildConfig    `json:"build,omitempty"`
-	Git         *VercelGit            `json:"git,omitempty"`
-	CleanUrls   bool                  `json:"cleanUrls,omitempty"`
+	Version   int                   `json:"version,omitempty"`
+	Regions   []string              `json:"regions,omitempty"`
+	Builds    []VercelBuild         `json:"builds,omitempty"` // Deprecated
+	Functions map[string]VercelFunc `json:"functions,omitempty"`
+	Redirects []VercelRedirect      `json:"redirects,omitempty"`
+	Rewrites  []VercelRewrite       `json:"rewrites,omitempty"`
+	Headers   []VercelHeader        `json:"headers,omitempty"`
+	Env       map[string]string     `json:"env,omitempty"`
+	Build     *VercelBuildConfig    `json:"build,omitempty"`
+	Git       *VercelGit            `json:"git,omitempty"`
+	CleanUrls bool                  `json:"cleanUrls,omitempty"`
 }
 
 type VercelBuild struct {
-	Src    string            `json:"src"`
-	Use    string            `json:"use"`
+	Src    string                 `json:"src"`
+	Use    string                 `json:"use"`
 	Config map[string]interface{} `json:"config,omitempty"`
 }
 
 type VercelFunc struct {
-	Runtime    string `json:"runtime,omitempty"`
-	Memory     int    `json:"memory,omitempty"`
-	MaxDuration int   `json:"maxDuration,omitempty"`
+	Runtime     string `json:"runtime,omitempty"`
+	Memory      int    `json:"memory,omitempty"`
+	MaxDuration int    `json:"maxDuration,omitempty"`
 }
 
 type VercelRedirect struct {
@@ -88,8 +88,8 @@ type VercelRewrite struct {
 }
 
 type VercelHeader struct {
-	Source  string            `json:"source"`
-	Headers []VercelHeaderKV  `json:"headers"`
+	Source  string           `json:"source"`
+	Headers []VercelHeaderKV `json:"headers"`
 }
 
 type VercelHeaderKV struct {

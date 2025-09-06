@@ -24,7 +24,7 @@ func (h *HerokuProcfileSignal) Confidence() int {
 
 func (h *HerokuProcfileSignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
 	// Look for Procfile
-	configPath, err := fs.FindFileInEntries(h.filesystem, rootPath, "Procfile", dirEntries)
+	configPath, err := fs.FindFile(h.filesystem, rootPath, "Procfile", dirEntries)
 	if err != nil || configPath == "" {
 		return nil, err
 	}
@@ -85,20 +85,20 @@ func determineNetworkFromProcfile(processType string) types.Network {
 	if processType == "web" {
 		return types.NetworkPublic
 	}
-	
+
 	// Workers, schedulers, etc. are typically private
 	return types.NetworkPrivate
 }
 
 func determineRuntimeFromProcfile(processType, command string) types.Runtime {
 	// Check for cron-like commands or scheduling indicators
-	if strings.Contains(command, "cron") || 
-	   strings.Contains(command, "schedule") ||
-	   processType == "scheduler" ||
-	   processType == "cron" {
+	if strings.Contains(command, "cron") ||
+		strings.Contains(command, "schedule") ||
+		processType == "scheduler" ||
+		processType == "cron" {
 		return types.RuntimeScheduled
 	}
-	
+
 	// Default to continuous
 	return types.RuntimeContinuous
 }

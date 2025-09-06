@@ -11,7 +11,7 @@ import (
 	"github.com/railwayapp/turnout/internal/utils/fs"
 )
 
-type RailwaySignal struct{
+type RailwaySignal struct {
 	filesystem fs.FileSystem
 }
 
@@ -52,11 +52,11 @@ func (r *RailwaySignal) Discover(ctx context.Context, rootPath string, dirEntrie
 
 func (r *RailwaySignal) findRailwayConfig(rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) (string, error) {
 	// Check for railway.json first, then railway.toml
-	if found, err := fs.FindFileInEntries(r.filesystem, rootPath, "railway.json", dirEntries); err == nil && found != "" {
+	if found, err := fs.FindFile(r.filesystem, rootPath, "railway.json", dirEntries); err == nil && found != "" {
 		return found, nil
 	}
-	
-	if found, err := fs.FindFileInEntries(r.filesystem, rootPath, "railway.toml", dirEntries); err == nil && found != "" {
+
+	if found, err := fs.FindFile(r.filesystem, rootPath, "railway.toml", dirEntries); err == nil && found != "" {
 		return found, nil
 	}
 
@@ -87,14 +87,14 @@ func (r *RailwaySignal) parseRailwayConfig(configPath string) (*RailwayConfig, e
 	}
 
 	var config RailwayConfig
-	
+
 	// Use the path extension to determine format
 	if strings.HasSuffix(configPath, ".json") {
 		err = json.Unmarshal(data, &config)
 	} else {
 		err = toml.Unmarshal(data, &config)
 	}
-	
+
 	if err != nil {
 		return nil, err
 	}
@@ -107,12 +107,12 @@ func determineNetworkFromRailway(config *RailwayConfig) types.Network {
 	if config.Deploy != nil && config.Deploy.HealthcheckPath != "" {
 		return types.NetworkPublic
 	}
-	
+
 	// If there's a start command, assume it's a web service (Railway's primary use case)
 	if config.Deploy != nil && config.Deploy.StartCommand != "" {
 		return types.NetworkPublic
 	}
-	
+
 	// Conservative default
 	return types.NetworkPrivate
 }

@@ -24,7 +24,7 @@ func (p *PackageSignal) Confidence() int {
 
 func (p *PackageSignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
 	frameworks := p.detectFrameworksFromPackages(rootPath, dirEntries)
-	
+
 	var services []types.Service
 	for _, fw := range frameworks {
 		service := types.Service{
@@ -39,7 +39,7 @@ func (p *PackageSignal) Discover(ctx context.Context, rootPath string, dirEntrie
 		}
 		services = append(services, service)
 	}
-	
+
 	return services, nil
 }
 
@@ -53,89 +53,89 @@ type PackageFramework struct {
 
 func (p *PackageSignal) detectFrameworksFromPackages(rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) []PackageFramework {
 	var frameworks []PackageFramework
-	
+
 	// Node.js package.json
-	if packagePath, err := fs.FindFileInEntries(p.filesystem, rootPath, "package.json", dirEntries); err == nil && packagePath != "" {
+	if packagePath, err := fs.FindFile(p.filesystem, rootPath, "package.json", dirEntries); err == nil && packagePath != "" {
 		if fw := p.analyzePackageJson(packagePath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
-	
+
 	// Python requirements.txt / pyproject.toml
-	if requirementsPath, err := fs.FindFileInEntries(p.filesystem, rootPath, "requirements.txt", dirEntries); err == nil && requirementsPath != "" {
+	if requirementsPath, err := fs.FindFile(p.filesystem, rootPath, "requirements.txt", dirEntries); err == nil && requirementsPath != "" {
 		if fw := p.analyzeRequirements(requirementsPath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
-	
-	if pyprojectPath, err := fs.FindFileInEntries(p.filesystem, rootPath, "pyproject.toml", dirEntries); err == nil && pyprojectPath != "" {
+
+	if pyprojectPath, err := fs.FindFile(p.filesystem, rootPath, "pyproject.toml", dirEntries); err == nil && pyprojectPath != "" {
 		if fw := p.analyzePyProject(pyprojectPath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
-	
+
 	// Go go.mod
-	if goModPath, err := fs.FindFileInEntries(p.filesystem, rootPath, "go.mod", dirEntries); err == nil && goModPath != "" {
+	if goModPath, err := fs.FindFile(p.filesystem, rootPath, "go.mod", dirEntries); err == nil && goModPath != "" {
 		if fw := p.analyzeGoMod(goModPath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
-	
+
 	// Rust Cargo.toml
-	if cargoPath, err := fs.FindFileInEntries(p.filesystem, rootPath, "Cargo.toml", dirEntries); err == nil && cargoPath != "" {
+	if cargoPath, err := fs.FindFile(p.filesystem, rootPath, "Cargo.toml", dirEntries); err == nil && cargoPath != "" {
 		if fw := p.analyzeCargo(cargoPath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
-	
+
 	// PHP composer.json
-	if composerPath, err := fs.FindFileInEntries(p.filesystem, rootPath, "composer.json", dirEntries); err == nil && composerPath != "" {
+	if composerPath, err := fs.FindFile(p.filesystem, rootPath, "composer.json", dirEntries); err == nil && composerPath != "" {
 		if fw := p.analyzeComposer(composerPath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
-	
+
 	// Ruby Gemfile
-	if gemfilePath, err := fs.FindFileInEntries(p.filesystem, rootPath, "Gemfile", dirEntries); err == nil && gemfilePath != "" {
+	if gemfilePath, err := fs.FindFile(p.filesystem, rootPath, "Gemfile", dirEntries); err == nil && gemfilePath != "" {
 		if fw := p.analyzeGemfile(gemfilePath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
-	
+
 	// Java/Kotlin/Scala
-	if pomPath, err := fs.FindFileInEntries(p.filesystem, rootPath, "pom.xml", dirEntries); err == nil && pomPath != "" {
+	if pomPath, err := fs.FindFile(p.filesystem, rootPath, "pom.xml", dirEntries); err == nil && pomPath != "" {
 		if fw := p.analyzePom(pomPath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
-	
+
 	if gradlePath := p.findAnyFile(rootPath, dirEntries, "build.gradle", "build.gradle.kts"); gradlePath != "" {
 		if fw := p.analyzeGradle(gradlePath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
-	
+
 	// C#/.NET
 	if csprojPath := p.findGlobFile(rootPath, "*.csproj"); csprojPath != "" {
 		if fw := p.analyzeCsproj(csprojPath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
-	
+
 	// Swift Package.swift
-	if swiftPath, err := fs.FindFileInEntries(p.filesystem, rootPath, "Package.swift", dirEntries); err == nil && swiftPath != "" {
+	if swiftPath, err := fs.FindFile(p.filesystem, rootPath, "Package.swift", dirEntries); err == nil && swiftPath != "" {
 		if fw := p.analyzeSwiftPackage(swiftPath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
-	
+
 	// Elixir mix.exs
-	if mixPath, err := fs.FindFileInEntries(p.filesystem, rootPath, "mix.exs", dirEntries); err == nil && mixPath != "" {
+	if mixPath, err := fs.FindFile(p.filesystem, rootPath, "mix.exs", dirEntries); err == nil && mixPath != "" {
 		if fw := p.analyzeMix(mixPath); fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
-	
+
 	return frameworks
 }
 
@@ -144,17 +144,17 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 	if err != nil {
 		return nil
 	}
-	
+
 	var pkg struct {
 		Dependencies    map[string]string `json:"dependencies"`
 		DevDependencies map[string]string `json:"devDependencies"`
 		Scripts         map[string]string `json:"scripts"`
 	}
-	
+
 	if err := json.Unmarshal(data, &pkg); err != nil {
 		return nil
 	}
-	
+
 	allDeps := make(map[string]string)
 	for k, v := range pkg.Dependencies {
 		allDeps[k] = v
@@ -162,7 +162,7 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 	for k, v := range pkg.DevDependencies {
 		allDeps[k] = v
 	}
-	
+
 	// Frontend meta-frameworks (highest priority)
 	if _, found := allDeps["next"]; found {
 		return &PackageFramework{Name: "Next.js", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -185,7 +185,7 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 	if _, found := allDeps["@builder.io/qwik"]; found {
 		return &PackageFramework{Name: "Qwik", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	
+
 	// Static site generators
 	if _, found := allDeps["gatsby"]; found {
 		return &PackageFramework{Name: "Gatsby", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -199,7 +199,7 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 	if _, found := allDeps["@gridsome/cli"]; found {
 		return &PackageFramework{Name: "Gridsome", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	
+
 	// Build tools that might indicate frontend apps
 	if _, found := allDeps["vite"]; found {
 		return &PackageFramework{Name: "Vite App", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -213,7 +213,7 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 	if _, found := allDeps["rollup"]; found {
 		return &PackageFramework{Name: "Rollup App", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	
+
 	// Backend Node.js frameworks
 	if _, found := allDeps["express"]; found {
 		return &PackageFramework{Name: "Express.js", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -242,7 +242,7 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 	if _, found := allDeps["@keystone-6/core"]; found {
 		return &PackageFramework{Name: "Keystone.js", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	
+
 	// Frontend frameworks/libraries
 	if _, found := allDeps["react"]; found {
 		return &PackageFramework{Name: "React App", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -259,7 +259,7 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 	if _, found := allDeps["@angular/core"]; found {
 		return &PackageFramework{Name: "Angular", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	
+
 	// Mobile frameworks
 	if _, found := allDeps["react-native"]; found {
 		return &PackageFramework{Name: "React Native", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -273,7 +273,7 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 	if _, found := allDeps["@ionic/angular"]; found {
 		return &PackageFramework{Name: "Ionic Angular", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	
+
 	// Desktop frameworks
 	if _, found := allDeps["electron"]; found {
 		return &PackageFramework{Name: "Electron", ConfigPath: packagePath, Network: types.NetworkPrivate, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -281,7 +281,7 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 	if _, found := allDeps["@tauri-apps/api"]; found {
 		return &PackageFramework{Name: "Tauri", ConfigPath: packagePath, Network: types.NetworkPrivate, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	
+
 	return nil
 }
 
@@ -290,9 +290,9 @@ func (p *PackageSignal) analyzeRequirements(requirementsPath string) *PackageFra
 	if err != nil {
 		return nil
 	}
-	
+
 	content := strings.ToLower(string(data))
-	
+
 	// Web frameworks
 	if strings.Contains(content, "django") {
 		return &PackageFramework{Name: "Django", ConfigPath: requirementsPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -324,7 +324,7 @@ func (p *PackageSignal) analyzeRequirements(requirementsPath string) *PackageFra
 	if strings.Contains(content, "cherrypy") {
 		return &PackageFramework{Name: "CherryPy", ConfigPath: requirementsPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	
+
 	// Data/ML frameworks (might be APIs)
 	if strings.Contains(content, "streamlit") {
 		return &PackageFramework{Name: "Streamlit", ConfigPath: requirementsPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -335,12 +335,12 @@ func (p *PackageSignal) analyzeRequirements(requirementsPath string) *PackageFra
 	if strings.Contains(content, "gradio") {
 		return &PackageFramework{Name: "Gradio", ConfigPath: requirementsPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	
+
 	// Generic Python web-related packages
 	if strings.Contains(content, "requests") || strings.Contains(content, "urllib3") || strings.Contains(content, "httpx") {
 		return &PackageFramework{Name: "Python Web Service", ConfigPath: requirementsPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	
+
 	return nil
 }
 
@@ -349,9 +349,9 @@ func (p *PackageSignal) analyzePyProject(pyprojectPath string) *PackageFramework
 	if err != nil {
 		return nil
 	}
-	
+
 	content := strings.ToLower(string(data))
-	
+
 	// Look for dependencies in pyproject.toml
 	if strings.Contains(content, "django") {
 		return &PackageFramework{Name: "Django", ConfigPath: pyprojectPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -362,7 +362,7 @@ func (p *PackageSignal) analyzePyProject(pyprojectPath string) *PackageFramework
 	if strings.Contains(content, "flask") {
 		return &PackageFramework{Name: "Flask", ConfigPath: pyprojectPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	
+
 	return &PackageFramework{Name: "Python Project", ConfigPath: pyprojectPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 }
 
@@ -371,9 +371,9 @@ func (p *PackageSignal) analyzeGoMod(goModPath string) *PackageFramework {
 	if err != nil {
 		return nil
 	}
-	
+
 	content := string(data)
-	
+
 	// Web frameworks
 	if strings.Contains(content, "github.com/gin-gonic/gin") {
 		return &PackageFramework{Name: "Gin", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -399,7 +399,7 @@ func (p *PackageSignal) analyzeGoMod(goModPath string) *PackageFramework {
 	if strings.Contains(content, "go.uber.org/fx") {
 		return &PackageFramework{Name: "Go Service (Fx)", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	
+
 	// Generic Go service
 	return &PackageFramework{Name: "Go Service", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 }
@@ -409,9 +409,9 @@ func (p *PackageSignal) analyzeCargo(cargoPath string) *PackageFramework {
 	if err != nil {
 		return nil
 	}
-	
+
 	content := string(data)
-	
+
 	// Web frameworks
 	if strings.Contains(content, "actix-web") {
 		return &PackageFramework{Name: "Actix Web", ConfigPath: cargoPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -434,7 +434,7 @@ func (p *PackageSignal) analyzeCargo(cargoPath string) *PackageFramework {
 	if strings.Contains(content, "salvo") {
 		return &PackageFramework{Name: "Salvo", ConfigPath: cargoPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	
+
 	// Desktop frameworks
 	if strings.Contains(content, "tauri") {
 		return &PackageFramework{Name: "Tauri", ConfigPath: cargoPath, Network: types.NetworkPrivate, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -442,7 +442,7 @@ func (p *PackageSignal) analyzeCargo(cargoPath string) *PackageFramework {
 	if strings.Contains(content, "egui") {
 		return &PackageFramework{Name: "egui Desktop", ConfigPath: cargoPath, Network: types.NetworkPrivate, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	
+
 	// Generic Rust service
 	return &PackageFramework{Name: "Rust Service", ConfigPath: cargoPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 }
@@ -452,16 +452,16 @@ func (p *PackageSignal) analyzeComposer(composerPath string) *PackageFramework {
 	if err != nil {
 		return nil
 	}
-	
+
 	var composer struct {
 		Require    map[string]string `json:"require"`
 		RequireDev map[string]string `json:"require-dev"`
 	}
-	
+
 	if err := json.Unmarshal(data, &composer); err != nil {
 		return nil
 	}
-	
+
 	allDeps := make(map[string]string)
 	for k, v := range composer.Require {
 		allDeps[k] = v
@@ -469,7 +469,7 @@ func (p *PackageSignal) analyzeComposer(composerPath string) *PackageFramework {
 	for k, v := range composer.RequireDev {
 		allDeps[k] = v
 	}
-	
+
 	// PHP frameworks
 	if _, found := allDeps["laravel/framework"]; found {
 		return &PackageFramework{Name: "Laravel", ConfigPath: composerPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -495,7 +495,7 @@ func (p *PackageSignal) analyzeComposer(composerPath string) *PackageFramework {
 	if _, found := allDeps["phalcon/phalcon"]; found {
 		return &PackageFramework{Name: "Phalcon", ConfigPath: composerPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	
+
 	// Generic PHP service
 	return &PackageFramework{Name: "PHP Service", ConfigPath: composerPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 }
@@ -505,9 +505,9 @@ func (p *PackageSignal) analyzeGemfile(gemfilePath string) *PackageFramework {
 	if err != nil {
 		return nil
 	}
-	
+
 	content := string(data)
-	
+
 	// Ruby frameworks
 	if strings.Contains(content, "rails") {
 		return &PackageFramework{Name: "Ruby on Rails", ConfigPath: gemfilePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -524,7 +524,7 @@ func (p *PackageSignal) analyzeGemfile(gemfilePath string) *PackageFramework {
 	if strings.Contains(content, "grape") {
 		return &PackageFramework{Name: "Grape API", ConfigPath: gemfilePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	
+
 	// Generic Ruby service
 	return &PackageFramework{Name: "Ruby Service", ConfigPath: gemfilePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 }
@@ -534,9 +534,9 @@ func (p *PackageSignal) analyzePom(pomPath string) *PackageFramework {
 	if err != nil {
 		return nil
 	}
-	
+
 	content := string(data)
-	
+
 	// Java frameworks
 	if strings.Contains(content, "spring-boot") {
 		return &PackageFramework{Name: "Spring Boot", ConfigPath: pomPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -556,7 +556,7 @@ func (p *PackageSignal) analyzePom(pomPath string) *PackageFramework {
 	if strings.Contains(content, "dropwizard") {
 		return &PackageFramework{Name: "Dropwizard", ConfigPath: pomPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	
+
 	// Generic Java service
 	return &PackageFramework{Name: "Java Service", ConfigPath: pomPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 }
@@ -566,9 +566,9 @@ func (p *PackageSignal) analyzeGradle(gradlePath string) *PackageFramework {
 	if err != nil {
 		return nil
 	}
-	
+
 	content := string(data)
-	
+
 	// Java/Kotlin frameworks
 	if strings.Contains(content, "spring-boot") {
 		return &PackageFramework{Name: "Spring Boot", ConfigPath: gradlePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -582,12 +582,12 @@ func (p *PackageSignal) analyzeGradle(gradlePath string) *PackageFramework {
 	if strings.Contains(content, "ktor") {
 		return &PackageFramework{Name: "Ktor", ConfigPath: gradlePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	
+
 	// Android
 	if strings.Contains(content, "com.android.application") {
 		return &PackageFramework{Name: "Android App", ConfigPath: gradlePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	
+
 	// Generic JVM service
 	return &PackageFramework{Name: "JVM Service", ConfigPath: gradlePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 }
@@ -597,9 +597,9 @@ func (p *PackageSignal) analyzeCsproj(csprojPath string) *PackageFramework {
 	if err != nil {
 		return nil
 	}
-	
+
 	content := string(data)
-	
+
 	// .NET frameworks
 	if strings.Contains(content, "Microsoft.AspNetCore") {
 		return &PackageFramework{Name: "ASP.NET Core", ConfigPath: csprojPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -610,7 +610,7 @@ func (p *PackageSignal) analyzeCsproj(csprojPath string) *PackageFramework {
 	if strings.Contains(content, "Microsoft.NET.Sdk.Web") {
 		return &PackageFramework{Name: ".NET Web App", ConfigPath: csprojPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	
+
 	// Generic .NET service
 	return &PackageFramework{Name: ".NET Service", ConfigPath: csprojPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 }
@@ -620,9 +620,9 @@ func (p *PackageSignal) analyzeSwiftPackage(swiftPath string) *PackageFramework 
 	if err != nil {
 		return nil
 	}
-	
+
 	content := string(data)
-	
+
 	// Swift frameworks
 	if strings.Contains(content, "Vapor") {
 		return &PackageFramework{Name: "Vapor", ConfigPath: swiftPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -633,7 +633,7 @@ func (p *PackageSignal) analyzeSwiftPackage(swiftPath string) *PackageFramework 
 	if strings.Contains(content, "Kitura") {
 		return &PackageFramework{Name: "Kitura", ConfigPath: swiftPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	
+
 	// Generic Swift service
 	return &PackageFramework{Name: "Swift Service", ConfigPath: swiftPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 }
@@ -643,9 +643,9 @@ func (p *PackageSignal) analyzeMix(mixPath string) *PackageFramework {
 	if err != nil {
 		return nil
 	}
-	
+
 	content := string(data)
-	
+
 	// Elixir frameworks
 	if strings.Contains(content, "phoenix") {
 		return &PackageFramework{Name: "Phoenix", ConfigPath: mixPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -653,7 +653,7 @@ func (p *PackageSignal) analyzeMix(mixPath string) *PackageFramework {
 	if strings.Contains(content, "plug") {
 		return &PackageFramework{Name: "Plug", ConfigPath: mixPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	
+
 	// Generic Elixir service
 	return &PackageFramework{Name: "Elixir Service", ConfigPath: mixPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 }
@@ -661,7 +661,7 @@ func (p *PackageSignal) analyzeMix(mixPath string) *PackageFramework {
 // Helper functions
 func (p *PackageSignal) findAnyFile(rootPath string, dirEntries iter.Seq2[fs.DirEntry, error], filenames ...string) string {
 	for _, filename := range filenames {
-		if path, err := fs.FindFileInEntries(p.filesystem, rootPath, filename, dirEntries); err == nil && path != "" {
+		if path, err := fs.FindFile(p.filesystem, rootPath, filename, dirEntries); err == nil && path != "" {
 			return path
 		}
 	}
@@ -672,7 +672,7 @@ func (p *PackageSignal) findGlobFile(rootPath, pattern string) string {
 	// Simple glob for *.csproj - just check common patterns
 	extensions := []string{".csproj", ".vbproj", ".fsproj"}
 	entries := p.filesystem.ReadDir(rootPath)
-	
+
 	for entry, err := range entries {
 		if err != nil {
 			continue

@@ -26,7 +26,7 @@ func (d *DockerfileSignal) Discover(ctx context.Context, rootPath string, dirEnt
 	var services []types.Service
 
 	// Check for Dockerfile in current directory
-	if found, err := fs.FindFileInEntries(d.filesystem, rootPath, "Dockerfile", dirEntries); err == nil && found != "" {
+	if found, err := fs.FindFile(d.filesystem, rootPath, "Dockerfile", dirEntries); err == nil && found != "" {
 		service := types.Service{
 			Name:      d.inferServiceName(found, rootPath),
 			Network:   types.NetworkPrivate, // Conservative default
@@ -44,21 +44,20 @@ func (d *DockerfileSignal) Discover(ctx context.Context, rootPath string, dirEnt
 	return services, nil
 }
 
-
 func (d *DockerfileSignal) inferServiceName(dockerfilePath, rootPath string) string {
 	dir := d.filesystem.Dir(dockerfilePath)
-	
+
 	// If Dockerfile is in root, use root directory name
 	if dir == rootPath {
 		return d.filesystem.Base(rootPath)
 	}
-	
+
 	// Use subdirectory name
 	rel, err := d.filesystem.Rel(rootPath, dir)
 	if err != nil {
 		return d.filesystem.Base(dir)
 	}
-	
+
 	// Use first directory component as service name
 	parts := strings.Split(rel, string(filepath.Separator))
 	return parts[0]

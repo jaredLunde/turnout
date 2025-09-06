@@ -24,7 +24,7 @@ func (h *HerokuAppJsonSignal) Confidence() int {
 
 func (h *HerokuAppJsonSignal) Discover(ctx context.Context, rootPath string, dirEntries iter.Seq2[fs.DirEntry, error]) ([]types.Service, error) {
 	// Look for app.json
-	configPath, err := fs.FindFileInEntries(h.filesystem, rootPath, "app.json", dirEntries)
+	configPath, err := fs.FindFile(h.filesystem, rootPath, "app.json", dirEntries)
 	if err != nil || configPath == "" {
 		return nil, err
 	}
@@ -44,9 +44,9 @@ func (h *HerokuAppJsonSignal) Discover(ctx context.Context, rootPath string, dir
 
 	service := types.Service{
 		Name:      serviceName,
-		Network:   types.NetworkPublic, // Heroku apps are typically web-facing
+		Network:   types.NetworkPublic,     // Heroku apps are typically web-facing
 		Runtime:   types.RuntimeContinuous, // Apps run continuously
-		Build:     types.BuildFromSource, // Heroku builds from source
+		Build:     types.BuildFromSource,   // Heroku builds from source
 		BuildPath: rootPath,
 		Configs: []types.ConfigRef{
 			{Type: "heroku-app-json", Path: configPath},
@@ -92,19 +92,19 @@ func (h *HerokuAppJsonSignal) Discover(ctx context.Context, rootPath string, dir
 
 // HerokuAppJson represents the app.json configuration structure
 type HerokuAppJson struct {
-	Name        string                     `json:"name"`
-	Description string                     `json:"description"`
-	Repository  string                     `json:"repository"`
-	Logo        string                     `json:"logo"`
-	Keywords    []string                   `json:"keywords"`
-	Website     string                     `json:"website"`
-	Stack       string                     `json:"stack"`
-	Buildpacks  []HerokuBuildpack          `json:"buildpacks"`
-	Env         map[string]HerokuEnvVar    `json:"env"`
-	Formation   map[string]HerokuFormation `json:"formation"`
-	Addons      []interface{}              `json:"addons"` // Can be string or object
-	Scripts     *HerokuScripts             `json:"scripts"`
-	Environments map[string]interface{}    `json:"environments"`
+	Name         string                     `json:"name"`
+	Description  string                     `json:"description"`
+	Repository   string                     `json:"repository"`
+	Logo         string                     `json:"logo"`
+	Keywords     []string                   `json:"keywords"`
+	Website      string                     `json:"website"`
+	Stack        string                     `json:"stack"`
+	Buildpacks   []HerokuBuildpack          `json:"buildpacks"`
+	Env          map[string]HerokuEnvVar    `json:"env"`
+	Formation    map[string]HerokuFormation `json:"formation"`
+	Addons       []interface{}              `json:"addons"` // Can be string or object
+	Scripts      *HerokuScripts             `json:"scripts"`
+	Environments map[string]interface{}     `json:"environments"`
 }
 
 type HerokuBuildpack struct {

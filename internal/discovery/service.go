@@ -179,6 +179,12 @@ func (sd *ServiceDiscovery) shouldIgnoreDirectory(dirName string) bool {
 	return false
 }
 
+// walkState holds directory contents for reuse
+type walkState struct {
+	dirEntries []fs.DirEntry
+	subdirs    []string
+}
+
 // efficientWalk performs recursive directory traversal with exactly one ReadDir per directory
 func (sd *ServiceDiscovery) efficientWalk(filesystem fs.FileSystem, path string, depth, maxDepth int, results *[]signalResult, lastCriticalError *error, ctx context.Context) error {
 	if depth > maxDepth {
@@ -191,12 +197,24 @@ func (sd *ServiceDiscovery) efficientWalk(filesystem fs.FileSystem, path string,
 		return nil
 	}
 
-	// Get directory iterator
-	dirIter := filesystem.ReadDir(path)
+	// Read directory once and cache results
+	state, err := sd.readDirOnce(filesystem, path, lastCriticalError)
+	if err != nil {
+		return err
+	}
+
+	// Create iterator from cached entries for signals
+	entriesIter := func(yield func(fs.DirEntry, error) bool) {
+		for _, entry := range state.dirEntries {
+			if !yield(entry, nil) {
+				return
+			}
+		}
+	}
 
 	// Run all signals on this directory with iterator
 	for _, signal := range sd.signals {
-		services, err := signal.Discover(ctx, path, dirIter)
+		services, err := signal.Discover(ctx, path, entriesIter)
 		if err != nil {
 			if isCriticalError(err) {
 				*lastCriticalError = err
@@ -212,7 +230,21 @@ func (sd *ServiceDiscovery) efficientWalk(filesystem fs.FileSystem, path string,
 		}
 	}
 
-	// Recurse into subdirectories - need fresh iterator for recursion
+	// Recurse into subdirectories
+	for _, dirName := range state.subdirs {
+		subPath := filesystem.Join(path, dirName)
+		if err := sd.efficientWalk(filesystem, subPath, depth+1, maxDepth, results, lastCriticalError, ctx); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readDirOnce reads directory entries once and caches them
+func (sd *ServiceDiscovery) readDirOnce(filesystem fs.FileSystem, path string, lastCriticalError *error) (*walkState, error) {
+	state := &walkState{}
+	
 	for entry, err := range filesystem.ReadDir(path) {
 		if err != nil {
 			if isCriticalError(err) {
@@ -220,15 +252,13 @@ func (sd *ServiceDiscovery) efficientWalk(filesystem fs.FileSystem, path string,
 			}
 			continue
 		}
+		state.dirEntries = append(state.dirEntries, entry)
 		if entry.IsDir() {
-			subPath := filesystem.Join(path, entry.Name())
-			if err := sd.efficientWalk(filesystem, subPath, depth+1, maxDepth, results, lastCriticalError, ctx); err != nil {
-				return err
-			}
+			state.subdirs = append(state.subdirs, entry.Name())
 		}
 	}
-
-	return nil
+	
+	return state, nil
 }
 
 // isCriticalError determines if an error is critical (auth/permission) vs expected (not found)
