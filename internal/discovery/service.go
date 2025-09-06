@@ -38,6 +38,8 @@ func DefaultSignals() []ServiceSignal {
 		&signals.NetlifySignal{},
 		&signals.HerokuProcfileSignal{},
 		&signals.HerokuAppJsonSignal{},
+		&signals.FrameworkSignal{},
+		&signals.PackageSignal{},
 	}
 }
 
