@@ -99,7 +99,12 @@ func (d *DockerComposeSignal) GenerateServices(ctx context.Context) ([]types.Ser
 
 		// Set build path or image
 		if service.Build == types.BuildFromSource && composeService.Build != nil {
-			service.BuildPath = composeService.Build.Context
+			// Build context is relative to the compose file directory
+			if composeService.Build.Context == "." {
+				service.BuildPath = workingDir
+			} else {
+				service.BuildPath = d.filesystem.Join(workingDir, composeService.Build.Context)
+			}
 		} else if service.Build == types.BuildFromImage {
 			service.Image = composeService.Image
 		}

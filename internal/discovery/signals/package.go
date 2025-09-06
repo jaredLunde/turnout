@@ -175,8 +175,20 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 	if _, found := deps["solid-start"]; found {
 		return &PackageFramework{Name: "SolidStart", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
+	if _, found := deps["@tanstack/start"]; found {
+		return &PackageFramework{Name: "TanStack Start", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if _, found := deps["@tanstack/router"]; found {
+		return &PackageFramework{Name: "TanStack Router", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
 	if _, found := deps["@builder.io/qwik"]; found {
 		return &PackageFramework{Name: "Qwik", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if _, found := deps["react-router"]; found {
+		return &PackageFramework{Name: "React Router", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if _, found := deps["react-router-dom"]; found {
+		return &PackageFramework{Name: "React Router DOM", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
 
 	// Static site generators
@@ -199,6 +211,18 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 	}
 	if _, found := deps["fastify"]; found {
 		return &PackageFramework{Name: "Fastify", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if _, found := deps["hono"]; found {
+		return &PackageFramework{Name: "Hono", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if _, found := deps["elysia"]; found {
+		return &PackageFramework{Name: "Elysia", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if _, found := deps["sails"]; found {
+		return &PackageFramework{Name: "Sails", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if _, found := deps["meteor"]; found {
+		return &PackageFramework{Name: "Meteor", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
 	if _, found := deps["koa"]; found {
 		return &PackageFramework{Name: "Koa.js", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -341,8 +365,20 @@ func (p *PackageSignal) analyzeGoMod(goModPath string) *PackageFramework {
 	if strings.Contains(content, "github.com/gofiber/fiber") {
 		return &PackageFramework{Name: "Fiber", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
+	if strings.Contains(content, "goa.design/goa") {
+		return &PackageFramework{Name: "Goa", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
 	if strings.Contains(content, "github.com/gorilla/mux") {
 		return &PackageFramework{Name: "Gorilla Mux", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if strings.Contains(content, "github.com/gorilla/websocket") {
+		return &PackageFramework{Name: "Gorilla Websocket", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if strings.Contains(content, "github.com/gorilla/sessions") {
+		return &PackageFramework{Name: "Gorilla Sessions", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if strings.Contains(content, "github.com/gorilla/csrf") {
+		return &PackageFramework{Name: "Gorilla CSRF", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
 	if strings.Contains(content, "github.com/labstack/echo") {
 		return &PackageFramework{Name: "Echo", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -358,6 +394,12 @@ func (p *PackageSignal) analyzeGoMod(goModPath string) *PackageFramework {
 	}
 	if strings.Contains(content, "go.uber.org/fx") {
 		return &PackageFramework{Name: "Go Service (Fx)", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if strings.Contains(content, "google.golang.org/grpc") {
+		return &PackageFramework{Name: "GRPC", ConfigPath: goModPath, Network: types.NetworkPrivate, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if strings.Contains(content, "google.golang.org/protobuf") {
+		return &PackageFramework{Name: "Protobuf", ConfigPath: goModPath, Network: types.NetworkPrivate, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
 
 	// Generic Go service
