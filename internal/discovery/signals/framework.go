@@ -9,9 +9,9 @@ import (
 )
 
 type FrameworkSignal struct {
-	filesystem  fs.FileSystem
-	frameworks  []Framework       // detected frameworks
-	configDirs  map[string]string // config path -> directory path
+	filesystem fs.FileSystem
+	frameworks []Framework       // detected frameworks
+	configDirs map[string]string // config path -> directory path
 }
 
 func NewFrameworkSignal(filesystem fs.FileSystem) *FrameworkSignal {
@@ -74,8 +74,6 @@ func (f *FrameworkSignal) ObserveEntry(ctx context.Context, rootPath string, ent
 		framework = Framework{Name: "Jekyll", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	case matchesAny(name, ".eleventy.js", "eleventy.config.js", ".eleventy.config.js"):
 		framework = Framework{Name: "Eleventy", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
-	case matchesAny(name, "tailwind.config.js", "tailwind.config.ts", "tailwind.config.mjs", "tailwind.config.cjs"):
-		framework = Framework{Name: "Tailwind", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	default:
 		return nil
 	}
