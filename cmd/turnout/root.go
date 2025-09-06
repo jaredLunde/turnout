@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/railwayapp/turnout/internal/discovery"
 	"github.com/railwayapp/turnout/internal/discovery/types"
@@ -27,6 +28,11 @@ var rootCmd = &cobra.Command{
 		sourcePath := "."
 		if len(args) > 0 {
 			sourcePath = args[0]
+			
+			// If user provided a file path, use the parent directory
+			if stat, err := os.Stat(sourcePath); err == nil && !stat.IsDir() {
+				sourcePath = filepath.Dir(sourcePath)
+			}
 		}
 
 		fmt.Printf("Processing source tree: %s\n", sourcePath)

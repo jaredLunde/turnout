@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(go get:*)"
+      "Bash(go get:*)",
+      "WebFetch(domain:backboard.railway.com)"
     ],
     "deny": [],
     "ask": []

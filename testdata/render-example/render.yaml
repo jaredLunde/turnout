@@ -1,0 +1,28 @@
+services:
+  - type: web
+    runtime: node
+    name: web-service
+    buildCommand: npm install
+    startCommand: npm start
+    plan: starter
+    healthCheckPath: /health
+    domains:
+      - example.com
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+  - type: pserv
+    runtime: docker
+    name: private-service
+    plan: starter
+    
+  - type: worker
+    runtime: python
+    name: background-worker
+    buildCommand: pip install -r requirements.txt
+    startCommand: python worker.py
+
+databases:
+  - name: main-db
+    plan: basic-1gb

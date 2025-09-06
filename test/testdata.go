@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 
 	"golang.org/x/sync/singleflight"
 )
@@ -61,4 +62,15 @@ func cloneRepo(repoURL string) (string, error) {
 	}
 
 	return repoDir, nil
+}
+
+// GetTestFixture returns the absolute path to a test fixture directory
+func GetTestFixture(name string) string {
+	// Get the path relative to the test package
+	_, filename, _, _ := runtime.Caller(0)
+	testDir := filepath.Dir(filename)
+	
+	// Go up to project root and into testdata
+	projectRoot := filepath.Dir(testDir)
+	return filepath.Join(projectRoot, "testdata", name)
 }

@@ -14,7 +14,7 @@ import (
 type DockerComposeSignal struct{}
 
 func (d *DockerComposeSignal) Confidence() int {
-	return 90 // Very high confidence - docker-compose explicitly defines services
+	return 80 // High confidence - but often used for local dev, not production deployment
 }
 
 func (d *DockerComposeSignal) Discover(ctx context.Context, rootPath string) ([]types.Service, error) {

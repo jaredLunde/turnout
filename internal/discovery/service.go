@@ -31,6 +31,10 @@ func DefaultSignals() []ServiceSignal {
 	return []ServiceSignal{
 		&signals.DockerComposeSignal{},
 		&signals.DockerfileSignal{},
+		&signals.RailwaySignal{},
+		&signals.FlySignal{},
+		&signals.RenderSignal{},
+		&signals.VercelSignal{},
 	}
 }
 

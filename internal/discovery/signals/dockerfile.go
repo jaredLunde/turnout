@@ -13,7 +13,7 @@ import (
 type DockerfileSignal struct{}
 
 func (d *DockerfileSignal) Confidence() int {
-	return 80 // High confidence - Dockerfile indicates a buildable service
+	return 70 // Moderate confidence - just indicates buildable service, not deployment config
 }
 
 func (d *DockerfileSignal) Discover(ctx context.Context, rootPath string) ([]types.Service, error) {
