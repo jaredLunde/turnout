@@ -194,8 +194,8 @@ var ignorePatterns = []string{
 	// Temporary
 	"tmp", "temp", "cache", "logs", "coverage",
 
-	// Documentation (usually not services)
-	"docs", "documentation", "doc", "man", "examples", "demo", "test", "tests",
+	// Usually not services
+	"man", "examples", "test", "tests",
 }
 
 func (sd *ServiceDiscovery) shouldIgnoreDirectory(dirName string) bool {

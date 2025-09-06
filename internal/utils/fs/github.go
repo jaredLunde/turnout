@@ -27,6 +27,7 @@ type GitHubFS struct {
 	ref        string
 	basePath   string
 	repoPrefix string
+	token      string
 	initErr    error
 
 	client    *github.Client
@@ -72,6 +73,7 @@ func NewGitHubFSWithPath(owner, repo, ref, basePath string, token string) *GitHu
 		repo:      repo,
 		ref:       ref,
 		basePath:  basePath,
+		token:     token,
 		pathIndex: make(map[string][]string),
 	}
 }
@@ -118,22 +120,24 @@ func (gfs *GitHubFS) downloadAndIndex() error {
 
 // downloadZipball downloads the repository zipball
 func (gfs *GitHubFS) downloadZipball(file *os.File) error {
-	// Use GitHub archive URL: https://github.com/owner/repo/archive/ref.zip
-	url := fmt.Sprintf("https://github.com/%s/%s/archive/%s.zip", gfs.owner, gfs.repo, gfs.ref)
+	var url string
+	
+	if gfs.token != "" {
+		// Use GitHub API endpoint for authenticated requests
+		url = fmt.Sprintf("https://api.github.com/repos/%s/%s/zipball/%s", gfs.owner, gfs.repo, gfs.ref)
+	} else {
+		// For unauthenticated requests use codeload directly
+		url = fmt.Sprintf("https://codeload.github.com/%s/%s/zipball/%s", gfs.owner, gfs.repo, gfs.ref)
+	}
 
 	req, err := http.NewRequestWithContext(gfs.ctx, "GET", url, nil)
 	if err != nil {
 		return err
 	}
-
-	// Add authentication if available
-	if gfs.client != nil {
-		// Try to get token from client
-		if transport, ok := gfs.client.Client().Transport.(*oauth2.Transport); ok {
-			if token, err := transport.Source.Token(); err == nil && token.AccessToken != "" {
-				req.Header.Set("Authorization", "token "+token.AccessToken)
-			}
-		}
+	
+	// Add token to Authorization header if available
+	if gfs.token != "" {
+		req.Header.Set("Authorization", "Bearer "+gfs.token)
 	}
 
 	resp, err := http.DefaultClient.Do(req)
@@ -143,7 +147,15 @@ func (gfs *GitHubFS) downloadZipball(file *os.File) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to download archive: HTTP %d", resp.StatusCode)
+		// Don't leak token in error message  
+		safeURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/zipball/%s", gfs.owner, gfs.repo, gfs.ref)
+		if gfs.token == "" {
+			safeURL = fmt.Sprintf("https://codeload.github.com/%s/%s/zipball/%s", gfs.owner, gfs.repo, gfs.ref)
+		}
+		
+		// Add more context for debugging
+		statusText := http.StatusText(resp.StatusCode)
+		return fmt.Errorf("failed to download archive: HTTP %d %s for %s", resp.StatusCode, statusText, safeURL)
 	}
 
 	_, err = io.Copy(file, resp.Body)
