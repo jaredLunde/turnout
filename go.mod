@@ -3,6 +3,7 @@ module github.com/railwayapp/turnout
 go 1.25.0
 
 require (
+	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/compose-spec/compose-go/v2 v2.8.1 // indirect
 	github.com/distribution/reference v0.5.0 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect

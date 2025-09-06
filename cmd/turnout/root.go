@@ -1,15 +1,15 @@
 package turnout
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 
+	"github.com/railwayapp/turnout/internal/discovery"
+	"github.com/railwayapp/turnout/internal/discovery/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/railwayapp/turnout/internal/discovery"
-	"github.com/railwayapp/turnout/internal/discovery/detectors"
-	"github.com/railwayapp/turnout/internal/export"
-	"github.com/railwayapp/turnout/internal/parser"
 )
 
 var cfgFile string
@@ -70,71 +70,76 @@ func initConfig() {
 }
 
 func runPipeline(sourcePath string) error {
-	// 1. Discovery - find all config files
-	scanner := discovery.NewScannerWithDetectors([]discovery.Detector{
-		&detectors.DockerCompose{},
-		&detectors.Dockerfile{},
-	})
-	
-	configs, err := scanner.DiscoverConfigs(sourcePath)
+	// Service discovery - find and triangulate services from multiple signals
+	serviceDiscovery := discovery.NewServiceDiscovery()
+	services, err := serviceDiscovery.Discover(context.Background(), sourcePath)
 	if err != nil {
-		return fmt.Errorf("discovery failed: %w", err)
+		return fmt.Errorf("service discovery failed: %w", err)
 	}
-	
-	fmt.Printf("Found %d config files:\n", len(configs))
-	for _, config := range configs {
-		fmt.Printf("  %s: %s\n", config.Type, config.Path)
-	}
-	
-	// 2. Parse - convert each config to project fragments
-	parsers := []parser.Parser{
-		&parser.DockerComposeParser{},
-	}
-	
-	var fragments []parser.ProjectFragment
-	for _, config := range configs {
-		for _, p := range parsers {
-			if p.CanParse(config.Type) {
-				fragment, err := p.Parse(config)
-				if err != nil {
-					return fmt.Errorf("failed to parse %s: %w", config.Path, err)
-				}
-				fragments = append(fragments, fragment)
-				fmt.Printf("Parsed %s -> %d services\n", config.Path, len(fragment.Services))
-				break
-			}
+
+	fmt.Printf("Discovered %d services:\n", len(services))
+	for _, service := range services {
+		fmt.Printf("  - %s: Network=%s, Runtime=%s, Build=%s\n", 
+			service.Name, 
+			networkToString(service.Network),
+			runtimeToString(service.Runtime),
+			buildToString(service.Build))
+		
+		if service.BuildPath != "" {
+			fmt.Printf("    BuildPath: %s\n", service.BuildPath)
 		}
-	}
-	
-	// 3. Aggregate - merge fragments into unified project
-	aggregator := parser.NewAggregator()
-	project, err := aggregator.Aggregate(fragments)
-	if err != nil {
-		return fmt.Errorf("aggregation failed: %w", err)
-	}
-	
-	fmt.Printf("\nProject: %s\n", project.Name)
-	fmt.Printf("Services: %d\n", len(project.Services))
-	for _, service := range project.Services {
-		fmt.Printf("  - %s", service.Name)
 		if service.Image != "" {
-			fmt.Printf(" (image: %s)", service.Image)
+			fmt.Printf("    Image: %s\n", service.Image)
 		}
-		if service.SourcePath != "" {
-			fmt.Printf(" (build: %s)", service.SourcePath)
+		
+		fmt.Printf("    Config sources (%d):\n", len(service.Configs))
+		for _, config := range service.Configs {
+			fmt.Printf("      - %s: %s\n", config.Type, config.Path)
 		}
-		fmt.Printf("\n")
+		fmt.Println()
 	}
-	
-	// 4. Export - convert to target format
-	exporter := export.NewJSONExporter()
-	output, err := exporter.Export(project)
+
+	// Export to JSON
+	output, err := json.MarshalIndent(services, "", "  ")
 	if err != nil {
-		return fmt.Errorf("export failed: %w", err)
+		return fmt.Errorf("JSON export failed: %w", err)
 	}
-	
-	fmt.Printf("\nExported to %s:\n", exporter.Name())
-	fmt.Println(string(output))
-	
+
+	fmt.Printf("\nJSON Export:\n%s\n", string(output))
 	return nil
+}
+
+func networkToString(n types.Network) string {
+	switch n {
+	case types.NetworkNone:
+		return "none"
+	case types.NetworkPrivate:
+		return "private"
+	case types.NetworkPublic:
+		return "public"
+	default:
+		return "unknown"
+	}
+}
+
+func runtimeToString(r types.Runtime) string {
+	switch r {
+	case types.RuntimeContinuous:
+		return "continuous"
+	case types.RuntimeScheduled:
+		return "scheduled"
+	default:
+		return "unknown"
+	}
+}
+
+func buildToString(b types.Build) string {
+	switch b {
+	case types.BuildFromSource:
+		return "source"
+	case types.BuildFromImage:
+		return "image"
+	default:
+		return "unknown"
+	}
 }
