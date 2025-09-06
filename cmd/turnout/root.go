@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
+	"runtime/pprof"
 
 	"github.com/railwayapp/turnout/internal/discovery"
 	"github.com/railwayapp/turnout/internal/discovery/types"
@@ -15,6 +17,8 @@ import (
 )
 
 var cfgFile string
+var cpuprofile string
+var memprofile string
 
 var rootCmd = &cobra.Command{
 	Use:   "turnout [source-path]",
@@ -26,6 +30,21 @@ var rootCmd = &cobra.Command{
 4. Export - Generate Railway deployment configuration`,
 	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
+		// Start CPU profiling if requested
+		if cpuprofile != "" {
+			f, err := os.Create(cpuprofile)
+			if err != nil {
+				fmt.Printf("Could not create CPU profile: %v\n", err)
+				os.Exit(1)
+			}
+			defer f.Close()
+			if err := pprof.StartCPUProfile(f); err != nil {
+				fmt.Printf("Could not start CPU profile: %v\n", err)
+				os.Exit(1)
+			}
+			defer pprof.StopCPUProfile()
+		}
+
 		sourcePath := "."
 		if len(args) > 0 {
 			sourcePath = args[0]
@@ -42,6 +61,21 @@ var rootCmd = &cobra.Command{
 			fmt.Printf("Pipeline failed: %v\n", err)
 			os.Exit(1)
 		}
+
+		// Write memory profile if requested
+		if memprofile != "" {
+			f, err := os.Create(memprofile)
+			if err != nil {
+				fmt.Printf("Could not create memory profile: %v\n", err)
+				os.Exit(1)
+			}
+			defer f.Close()
+			runtime.GC() // get up-to-date statistics
+			if err := pprof.WriteHeapProfile(f); err != nil {
+				fmt.Printf("Could not write memory profile: %v\n", err)
+				os.Exit(1)
+			}
+		}
 	},
 }
 
@@ -55,6 +89,8 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.turnout.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cpuprofile, "cpuprofile", "", "write cpu profile to file")
+	rootCmd.PersistentFlags().StringVar(&memprofile, "memprofile", "", "write memory profile to file")
 }
 
 func initConfig() {
