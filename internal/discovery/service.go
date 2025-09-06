@@ -35,6 +35,9 @@ func DefaultSignals() []ServiceSignal {
 		&signals.FlySignal{},
 		&signals.RenderSignal{},
 		&signals.VercelSignal{},
+		&signals.NetlifySignal{},
+		&signals.HerokuProcfileSignal{},
+		&signals.HerokuAppJsonSignal{},
 	}
 }
 
