@@ -397,12 +397,6 @@ func (p *PackageSignal) analyzeGoMod(goModPath string) *PackageFramework {
 	if strings.Contains(content, "github.com/kataras/iris") {
 		return &PackageFramework{Name: "Iris", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if strings.Contains(content, "google.golang.org/grpc") {
-		return &PackageFramework{Name: "GRPC", ConfigPath: goModPath, Network: types.NetworkPrivate, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
-	}
-	if strings.Contains(content, "google.golang.org/protobuf") {
-		return &PackageFramework{Name: "Protobuf", ConfigPath: goModPath, Network: types.NetworkPrivate, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
-	}
 
 	// Generic Go service
 	return nil
