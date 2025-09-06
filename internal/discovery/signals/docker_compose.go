@@ -35,9 +35,8 @@ func (d *DockerComposeSignal) Discover(ctx context.Context, rootPath string, dir
 	
 	var composePath string
 	for _, filename := range composeFiles {
-		path := d.filesystem.Join(rootPath, filename)
-		if _, err := d.filesystem.Stat(path); err == nil {
-			composePath = path
+		if found, err := fs.FindFile(d.filesystem, rootPath, filename, dirEntries); err == nil && found != "" {
+			composePath = found
 			break
 		}
 	}

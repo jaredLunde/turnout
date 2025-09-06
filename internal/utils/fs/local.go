@@ -48,13 +48,6 @@ func (lfs *LocalFS) ReadDir(name string) iter.Seq2[DirEntry, error] {
 	}
 }
 
-func (lfs *LocalFS) Stat(name string) (FileInfo, error) {
-	info, err := os.Stat(name)
-	if err != nil {
-		return nil, err
-	}
-	return &localFileInfo{info}, nil
-}
 
 func (lfs *LocalFS) Walk(root string, fn WalkFunc) error {
 	return filepath.Walk(root, func(path string, info os.FileInfo, err error) error {

@@ -14,9 +14,6 @@ type FileSystem interface {
 	// ReadDir reads the named directory and returns an iterator over directory entries
 	ReadDir(name string) iter.Seq2[DirEntry, error]
 	
-	// Stat returns a FileInfo describing the named file
-	Stat(name string) (FileInfo, error)
-	
 	// Walk walks the file tree rooted at root, calling fn for each file or directory
 	Walk(root string, fn WalkFunc) error
 	

@@ -292,48 +292,6 @@ func (gfs *GitHubFS) ReadDir(name string) iter.Seq2[DirEntry, error] {
 	}
 }
 
-func (gfs *GitHubFS) Stat(name string) (FileInfo, error) {
-	if err := gfs.ensureInitialized(); err != nil {
-		return nil, err
-	}
-
-	// Validate path
-	if err := gfs.validatePath(name); err != nil {
-		return nil, err
-	}
-
-	originalName := name
-	name = gfs.resolvePath(name)
-
-	// Special case for root directory
-	if originalName == "." || name == "" {
-		return &zipFileInfo{nil, true, "."}, nil
-	}
-
-	// Build target path
-	targetPath := gfs.repoPrefix + name
-
-	// Scan zip entries to find exact match
-	for _, f := range gfs.zipReader.File {
-		if f.Name == targetPath {
-			return &zipFileInfo{f, f.FileInfo().IsDir(), ""}, nil
-		}
-		// Also check with trailing slash for directories
-		if f.Name == targetPath+"/" {
-			return &zipFileInfo{f, true, ""}, nil
-		}
-	}
-
-	// Check if it's an implicit directory (has children)
-	targetPrefix := targetPath + "/"
-	for _, f := range gfs.zipReader.File {
-		if strings.HasPrefix(f.Name, targetPrefix) {
-			return &zipFileInfo{nil, true, filepath.Base(name)}, nil
-		}
-	}
-
-	return nil, fmt.Errorf("path not found: %s", name)
-}
 
 // lightweightDirEntry implements DirEntry without holding zip.File references
 type lightweightDirEntry struct {
@@ -451,11 +409,8 @@ func (gfs *GitHubFS) Walk(root string, fn WalkFunc) error {
 		return err
 	}
 
-	// For the root directory, we need to get its info first
-	rootInfo, err := gfs.Stat(root)
-	if err != nil {
-		return fn(root, nil, err)
-	}
+	// Create root directory info
+	rootInfo := &lightweightFileInfo{name: root, isDir: true}
 
 	return gfs.walkRecursive(root, rootInfo, fn, 0, 10)
 }

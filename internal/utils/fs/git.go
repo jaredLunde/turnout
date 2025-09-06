@@ -111,14 +111,6 @@ func (gfs *GitFS) ReadDir(name string) iter.Seq2[DirEntry, error] {
 	}
 }
 
-func (gfs *GitFS) Stat(name string) (FileInfo, error) {
-	if err := gfs.ensureCloned(); err != nil {
-		return nil, err
-	}
-	
-	fullPath := gfs.localFS.Join(gfs.localPath, name)
-	return gfs.localFS.Stat(fullPath)
-}
 
 func (gfs *GitFS) Walk(root string, fn WalkFunc) error {
 	if err := gfs.ensureCloned(); err != nil {
