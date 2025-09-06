@@ -121,20 +121,20 @@ func (gfs *GitHubFS) downloadAndIndex() error {
 // downloadZipball downloads the repository zipball
 func (gfs *GitHubFS) downloadZipball(file *os.File) error {
 	var url string
-	
+
 	if gfs.token != "" {
 		// Use GitHub API endpoint for authenticated requests
 		url = fmt.Sprintf("https://api.github.com/repos/%s/%s/zipball/%s", gfs.owner, gfs.repo, gfs.ref)
 	} else {
 		// For unauthenticated requests use codeload directly
-		url = fmt.Sprintf("https://codeload.github.com/%s/%s/zipball/%s", gfs.owner, gfs.repo, gfs.ref)
+		url = fmt.Sprintf("https://codeload.github.com/%s/%s/zip/%s", gfs.owner, gfs.repo, gfs.ref)
 	}
 
 	req, err := http.NewRequestWithContext(gfs.ctx, "GET", url, nil)
 	if err != nil {
 		return err
 	}
-	
+
 	// Add token to Authorization header if available
 	if gfs.token != "" {
 		req.Header.Set("Authorization", "Bearer "+gfs.token)
@@ -147,12 +147,12 @@ func (gfs *GitHubFS) downloadZipball(file *os.File) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		// Don't leak token in error message  
+		// Don't leak token in error message
 		safeURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/zipball/%s", gfs.owner, gfs.repo, gfs.ref)
 		if gfs.token == "" {
-			safeURL = fmt.Sprintf("https://codeload.github.com/%s/%s/zipball/%s", gfs.owner, gfs.repo, gfs.ref)
+			safeURL = fmt.Sprintf("https://codeload.github.com/%s/%s/zip/%s", gfs.owner, gfs.repo, gfs.ref)
 		}
-		
+
 		// Add more context for debugging
 		statusText := http.StatusText(resp.StatusCode)
 		return fmt.Errorf("failed to download archive: HTTP %d %s for %s", resp.StatusCode, statusText, safeURL)
@@ -310,7 +310,6 @@ func (gfs *GitHubFS) ReadDir(name string) iter.Seq2[DirEntry, error] {
 		}
 	}
 }
-
 
 // lightweightDirEntry implements DirEntry without holding zip.File references
 type lightweightDirEntry struct {

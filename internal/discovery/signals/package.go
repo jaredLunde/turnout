@@ -28,14 +28,15 @@ func (p *PackageSignal) Reset() {
 	p.configDirs = make(map[string]string)
 }
 
+var packageFiles = []string{
+	"package.json", "requirements.txt", "pyproject.toml", "go.mod",
+	"Cargo.toml", "composer.json", "Gemfile", "pom.xml",
+	"build.gradle", "build.gradle.kts", "Package.swift", "mix.exs",
+}
+
 func (p *PackageSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
 	if !entry.IsDir() {
 		// Check for all package manager files
-		packageFiles := []string{
-			"package.json", "requirements.txt", "pyproject.toml", "go.mod",
-			"Cargo.toml", "composer.json", "Gemfile", "pom.xml",
-			"build.gradle", "build.gradle.kts", "Package.swift", "mix.exs",
-		}
 
 		for _, filename := range packageFiles {
 			if strings.EqualFold(entry.Name(), filename) {
@@ -155,6 +156,7 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 	}
 
 	deps := pkg.Dependencies
+	devDeps := pkg.DevDependencies
 
 	// Frontend meta-frameworks (highest priority)
 	if _, found := deps["next"]; found {
@@ -239,7 +241,7 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 	if _, found := deps["@apollo/server"]; found {
 		return &PackageFramework{Name: "Apollo GraphQL Server", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := deps["strapi"]; found {
+	if _, found := deps["@strapi/strapi"]; found {
 		return &PackageFramework{Name: "Strapi CMS", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
 	if _, found := deps["@keystone-6/core"]; found {
@@ -261,6 +263,9 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 	}
 	if _, found := deps["@angular/core"]; found {
 		return &PackageFramework{Name: "Angular", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if _, found := devDeps["vitepress"]; found {
+		return &PackageFramework{Name: "Vitepress", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
 
 	return nil

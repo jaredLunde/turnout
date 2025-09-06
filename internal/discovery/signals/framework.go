@@ -9,10 +9,9 @@ import (
 )
 
 type FrameworkSignal struct {
-	filesystem    fs.FileSystem
-	observedFiles map[string]string // filename -> full path
-	observedDirs  map[string]string // dirname -> full path
-	configDirs    map[string]string // config path -> directory path
+	filesystem  fs.FileSystem
+	frameworks  []Framework       // detected frameworks
+	configDirs  map[string]string // config path -> directory path
 }
 
 func NewFrameworkSignal(filesystem fs.FileSystem) *FrameworkSignal {
@@ -24,29 +23,71 @@ func (f *FrameworkSignal) Confidence() int {
 }
 
 func (f *FrameworkSignal) Reset() {
-	f.observedFiles = make(map[string]string)
-	f.observedDirs = make(map[string]string)
+	f.frameworks = nil
 	f.configDirs = make(map[string]string)
 }
 
 func (f *FrameworkSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
 	if entry.IsDir() {
-		fullPath := f.filesystem.Join(rootPath, entry.Name())
-		f.observedDirs[entry.Name()] = fullPath
-	} else {
-		fullPath := f.filesystem.Join(rootPath, entry.Name())
-		f.observedFiles[entry.Name()] = fullPath
-		f.configDirs[fullPath] = rootPath
+		return nil
 	}
 
+	fullPath := f.filesystem.Join(rootPath, entry.Name())
+	name := entry.Name()
+
+	// Detect frameworks by config files
+	var framework Framework
+	switch {
+	case matchesAny(name, "next.config.js", "next.config.ts", "next.config.mjs", "next.config.cjs"):
+		framework = Framework{Name: "Next.js", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	case matchesAny(name, "nuxt.config.js", "nuxt.config.ts", "nuxt.config.mjs", "nuxt.config.cjs"):
+		framework = Framework{Name: "Nuxt.js", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	case matchesAny(name, "vite.config.js", "vite.config.ts", "vite.config.mjs", "vite.config.cjs"):
+		framework = Framework{Name: "Vite", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	case matchesAny(name, "webpack.config.js", "webpack.config.ts", "webpack.config.mjs", "webpack.config.cjs"):
+		framework = Framework{Name: "Webpack", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	case matchesAny(name, "angular.json", ".angular-cli.json"):
+		framework = Framework{Name: "Angular", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	case matchesAny(name, "vue.config.js", "vue.config.ts", "vue.config.mjs", "vue.config.cjs"):
+		framework = Framework{Name: "Vue.js", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	case matchesAny(name, "svelte.config.js", "svelte.config.ts", "svelte.config.mjs", "svelte.config.cjs"):
+		framework = Framework{Name: "SvelteKit", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	case matchesAny(name, "remix.config.js", "remix.config.ts", "remix.config.mjs", "remix.config.cjs"):
+		framework = Framework{Name: "Remix", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	case matchesAny(name, "astro.config.js", "astro.config.ts", "astro.config.mjs", "astro.config.cjs"):
+		framework = Framework{Name: "Astro", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	case matchesAny(name, "gatsby-config.js", "gatsby-config.ts", "gatsby-config.mjs", "gatsby-config.cjs"):
+		framework = Framework{Name: "Gatsby", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	case name == "manage.py":
+		framework = Framework{Name: "Django", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	case name == "config.ru":
+		framework = Framework{Name: "Rails", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	case name == "mix.exs":
+		framework = Framework{Name: "Phoenix", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	case name == "nest-cli.json":
+		framework = Framework{Name: "NestJS", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	case name == "artisan":
+		framework = Framework{Name: "Laravel", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	case matchesAny(name, "hugo.toml", "hugo.yaml", "config.toml", "config.yaml"):
+		framework = Framework{Name: "Hugo", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	case matchesAny(name, "_config.yml", "_config.yaml"):
+		framework = Framework{Name: "Jekyll", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	case matchesAny(name, ".eleventy.js", "eleventy.config.js", ".eleventy.config.js"):
+		framework = Framework{Name: "Eleventy", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	case matchesAny(name, "tailwind.config.js", "tailwind.config.ts", "tailwind.config.mjs", "tailwind.config.cjs"):
+		framework = Framework{Name: "Tailwind", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	default:
+		return nil
+	}
+
+	f.frameworks = append(f.frameworks, framework)
+	f.configDirs[fullPath] = rootPath
 	return nil
 }
 
 func (f *FrameworkSignal) GenerateServices(ctx context.Context) ([]types.Service, error) {
-	frameworks := f.detectFrameworks()
-
 	var services []types.Service
-	for _, fw := range frameworks {
+	for _, fw := range f.frameworks {
 		buildPath := f.configDirs[fw.ConfigPath]
 		service := types.Service{
 			Name:      f.filesystem.Base(buildPath),
@@ -72,190 +113,11 @@ type Framework struct {
 	Build      types.Build
 }
 
-func (f *FrameworkSignal) detectFrameworks() []Framework {
-	var frameworks []Framework
-
-	// Frontend frameworks (public web services)
-	if configPath := f.findConfigFile("next.config.js", "next.config.ts", "next.config.mjs", "next.config.cjs"); configPath != "" {
-		frameworks = append(frameworks, Framework{
-			Name: "Next.js", ConfigPath: configPath,
-			Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource,
-		})
-	}
-
-	if configPath := f.findConfigFile("nuxt.config.js", "nuxt.config.ts", "nuxt.config.mjs", "nuxt.config.cjs"); configPath != "" {
-		frameworks = append(frameworks, Framework{
-			Name: "Nuxt.js", ConfigPath: configPath,
-			Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource,
-		})
-	}
-
-	if configPath := f.findConfigFile("vite.config.js", "vite.config.ts", "vite.config.mjs", "vite.config.cjs"); configPath != "" {
-		frameworks = append(frameworks, Framework{
-			Name: "Vite", ConfigPath: configPath,
-			Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource,
-		})
-	}
-
-	if configPath := f.findConfigFile("webpack.config.js", "webpack.config.ts", "webpack.config.mjs", "webpack.config.cjs"); configPath != "" {
-		frameworks = append(frameworks, Framework{
-			Name: "Webpack", ConfigPath: configPath,
-			Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource,
-		})
-	}
-
-	if configPath := f.findConfigFile("angular.json", ".angular-cli.json"); configPath != "" {
-		frameworks = append(frameworks, Framework{
-			Name: "Angular", ConfigPath: configPath,
-			Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource,
-		})
-	}
-
-	if configPath := f.findConfigFile("vue.config.js", "vue.config.ts", "vue.config.mjs", "vue.config.cjs"); configPath != "" {
-		frameworks = append(frameworks, Framework{
-			Name: "Vue.js", ConfigPath: configPath,
-			Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource,
-		})
-	}
-
-	if configPath := f.findConfigFile("svelte.config.js", "svelte.config.ts", "svelte.config.mjs", "svelte.config.cjs"); configPath != "" {
-		frameworks = append(frameworks, Framework{
-			Name: "SvelteKit", ConfigPath: configPath,
-			Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource,
-		})
-	}
-
-	if configPath := f.findConfigFile("remix.config.js", "remix.config.ts", "remix.config.mjs", "remix.config.cjs"); configPath != "" {
-		frameworks = append(frameworks, Framework{
-			Name: "Remix", ConfigPath: configPath,
-			Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource,
-		})
-	}
-
-	if configPath := f.findConfigFile("astro.config.js", "astro.config.ts", "astro.config.mjs", "astro.config.cjs"); configPath != "" {
-		frameworks = append(frameworks, Framework{
-			Name: "Astro", ConfigPath: configPath,
-			Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource,
-		})
-	}
-
-	if configPath := f.findConfigFile("gatsby-config.js", "gatsby-config.ts", "gatsby-config.mjs", "gatsby-config.cjs"); configPath != "" {
-		frameworks = append(frameworks, Framework{
-			Name: "Gatsby", ConfigPath: configPath,
-			Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource,
-		})
-	}
-
-	// Backend frameworks with explicit configs
-	if configPath := f.findConfigFile("manage.py"); configPath != "" {
-		frameworks = append(frameworks, Framework{
-			Name: "Django", ConfigPath: configPath,
-			Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource,
-		})
-	}
-
-	if f.hasDirectory("app") && f.hasFile("config.ru") {
-		configPath := f.findConfigFile("config.ru")
-		frameworks = append(frameworks, Framework{
-			Name: "Rails", ConfigPath: configPath,
-			Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource,
-		})
-	}
-
-	if configPath := f.findConfigFile("mix.exs"); configPath != "" {
-		frameworks = append(frameworks, Framework{
-			Name: "Phoenix", ConfigPath: configPath,
-			Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource,
-		})
-	}
-
-	// Node.js frameworks
-	if configPath := f.findConfigFile("nest-cli.json"); configPath != "" {
-		frameworks = append(frameworks, Framework{
-			Name: "NestJS", ConfigPath: configPath,
-			Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource,
-		})
-	}
-
-	// Java frameworks
-	if configPath := f.findConfigFile("pom.xml"); configPath != "" && f.hasSpringBootIndicators() {
-		frameworks = append(frameworks, Framework{
-			Name: "Spring Boot", ConfigPath: configPath,
-			Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource,
-		})
-	}
-
-	if configPath := f.findConfigFile("build.gradle", "build.gradle.kts"); configPath != "" && f.hasSpringBootIndicators() {
-		frameworks = append(frameworks, Framework{
-			Name: "Spring Boot", ConfigPath: configPath,
-			Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource,
-		})
-	}
-
-	// PHP frameworks
-	if configPath := f.findConfigFile("artisan"); configPath != "" {
-		frameworks = append(frameworks, Framework{
-			Name: "Laravel", ConfigPath: configPath,
-			Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource,
-		})
-	}
-
-	// Static site generators
-	// (Gatsby already handled above in frontend frameworks section)
-
-	if configPath := f.findConfigFile("hugo.toml", "hugo.yaml", "config.toml", "config.yaml"); configPath != "" {
-		frameworks = append(frameworks, Framework{
-			Name: "Hugo", ConfigPath: configPath,
-			Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource,
-		})
-	}
-
-	if configPath := f.findConfigFile("tailwind.config.js", "tailwind.config.ts", "tailwind.config.mjs", "tailwind.config.cjs"); configPath != "" {
-		frameworks = append(frameworks, Framework{
-			Name: "Tailwind", ConfigPath: configPath,
-			Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource,
-		})
-	}
-
-	return frameworks
-}
-
-func (f *FrameworkSignal) findConfigFile(filenames ...string) string {
-	for _, filename := range filenames {
-		if fullPath, exists := f.observedFiles[filename]; exists {
-			return fullPath
-		}
-		// Also check case-insensitive
-		for observedFile, fullPath := range f.observedFiles {
-			if strings.EqualFold(observedFile, filename) {
-				return fullPath
-			}
-		}
-	}
-	return ""
-}
-
-func (f *FrameworkSignal) hasDirectory(dirName string) bool {
-	if _, exists := f.observedDirs[dirName]; exists {
-		return true
-	}
-	// Also check case-insensitive
-	for observedDir := range f.observedDirs {
-		if strings.EqualFold(observedDir, dirName) {
+func matchesAny(name string, patterns ...string) bool {
+	for _, pattern := range patterns {
+		if strings.EqualFold(name, pattern) {
 			return true
 		}
 	}
 	return false
-}
-
-func (f *FrameworkSignal) hasFile(filename string) bool {
-	return f.findConfigFile(filename) != ""
-}
-
-func (f *FrameworkSignal) hasSpringBootIndicators() bool {
-	// Look for Spring Boot specific files/directories
-	return f.hasDirectory("src/main/java") ||
-		f.hasFile("application.properties") ||
-		f.hasFile("application.yml") ||
-		f.hasFile("application.yaml")
 }
