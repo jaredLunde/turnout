@@ -10,9 +10,9 @@ import (
 )
 
 type FlySignal struct {
-	filesystem      fs.FileSystem
-	currentRootPath string
-	configPaths     []string // all found fly.toml files
+	filesystem  fs.FileSystem
+	configPaths []string              // all found fly.toml files
+	configDirs  map[string]string     // config path -> directory path
 }
 
 func NewFlySignal(filesystem fs.FileSystem) *FlySignal {
@@ -25,15 +25,14 @@ func (f *FlySignal) Confidence() int {
 
 func (f *FlySignal) Reset() {
 	f.configPaths = nil
-	f.currentRootPath = ""
+	f.configDirs = make(map[string]string)
 }
 
 func (f *FlySignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
-	f.currentRootPath = rootPath
-	
 	if !entry.IsDir() && strings.EqualFold(entry.Name(), "fly.toml") {
 		configPath := f.filesystem.Join(rootPath, entry.Name())
 		f.configPaths = append(f.configPaths, configPath)
+		f.configDirs[configPath] = rootPath
 	}
 	
 	return nil
@@ -51,13 +50,14 @@ func (f *FlySignal) GenerateServices(ctx context.Context) ([]types.Service, erro
 			continue // Skip broken configs
 		}
 
+		buildPath := f.configDirs[configPath]
 		// Fly.io apps are typically single-service (like Railway)
 		service := types.Service{
-			Name:      f.filesystem.Base(f.currentRootPath), // Use directory name for consistency
+			Name:      f.filesystem.Base(buildPath), // Use directory name for consistency
 			Network:   determineNetworkFromFly(config),
 			Runtime:   types.RuntimeContinuous, // Fly services are continuous
 			Build:     determineBuildFromFly(config),
-			BuildPath: f.currentRootPath, // Fly builds from the directory containing fly.toml
+			BuildPath: buildPath, // Fly builds from the directory containing fly.toml
 			Configs: []types.ConfigRef{
 				{Type: "fly", Path: configPath},
 			},

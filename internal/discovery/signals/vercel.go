@@ -10,9 +10,9 @@ import (
 )
 
 type VercelSignal struct {
-	filesystem      fs.FileSystem
-	currentRootPath string
-	configPaths     []string
+	filesystem  fs.FileSystem
+	configPaths []string          // all found vercel.json files
+	configDirs  map[string]string // config path -> directory path
 }
 
 func NewVercelSignal(filesystem fs.FileSystem) *VercelSignal {
@@ -25,15 +25,14 @@ func (v *VercelSignal) Confidence() int {
 
 func (v *VercelSignal) Reset() {
 	v.configPaths = nil
-	v.currentRootPath = ""
+	v.configDirs = make(map[string]string)
 }
 
 func (v *VercelSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
-	v.currentRootPath = rootPath
-	
 	if !entry.IsDir() && strings.EqualFold(entry.Name(), "vercel.json") {
 		configPath := v.filesystem.Join(rootPath, entry.Name())
 		v.configPaths = append(v.configPaths, configPath)
+		v.configDirs[configPath] = rootPath
 	}
 	
 	return nil
@@ -52,14 +51,15 @@ func (v *VercelSignal) GenerateServices(ctx context.Context) ([]types.Service, e
 		return nil, err
 	}
 
+	buildPath := v.configDirs[configPath]
 	// Vercel deploys are typically single-service (static site + serverless functions)
 	// but we model it as one service representing the deployment
 	service := types.Service{
-		Name:      v.filesystem.Base(v.currentRootPath),
+		Name:      v.filesystem.Base(buildPath),
 		Network:   types.NetworkPublic,     // Vercel deployments are web-facing
 		Runtime:   types.RuntimeContinuous, // Web deployments run continuously
 		Build:     types.BuildFromSource,   // Vercel builds from source
-		BuildPath: v.currentRootPath,
+		BuildPath: buildPath,
 		Configs: []types.ConfigRef{
 			{Type: "vercel", Path: configPath},
 		},

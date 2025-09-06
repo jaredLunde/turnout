@@ -10,9 +10,9 @@ import (
 )
 
 type PackageSignal struct {
-	filesystem      fs.FileSystem
-	currentRootPath string
-	packagePaths    map[string]string // filename -> full path
+	filesystem   fs.FileSystem
+	packagePaths []string          // all found package files
+	configDirs   map[string]string // config path -> directory path
 }
 
 func NewPackageSignal(filesystem fs.FileSystem) *PackageSignal {
@@ -24,36 +24,36 @@ func (p *PackageSignal) Confidence() int {
 }
 
 func (p *PackageSignal) Reset() {
-	p.packagePaths = make(map[string]string)
-	p.currentRootPath = ""
+	p.packagePaths = nil
+	p.configDirs = make(map[string]string)
 }
 
 func (p *PackageSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
-	p.currentRootPath = rootPath
-	
 	if !entry.IsDir() {
 		// Check for all package manager files
 		packageFiles := []string{
-			"package.json", "requirements.txt", "pyproject.toml", "go.mod", 
-			"Cargo.toml", "composer.json", "Gemfile", "pom.xml", 
+			"package.json", "requirements.txt", "pyproject.toml", "go.mod",
+			"Cargo.toml", "composer.json", "Gemfile", "pom.xml",
 			"build.gradle", "build.gradle.kts", "Package.swift", "mix.exs",
 		}
-		
+
 		for _, filename := range packageFiles {
 			if strings.EqualFold(entry.Name(), filename) {
 				fullPath := p.filesystem.Join(rootPath, entry.Name())
-				p.packagePaths[filename] = fullPath
+				p.packagePaths = append(p.packagePaths, fullPath)
+				p.configDirs[fullPath] = rootPath
 				break
 			}
 		}
-		
+
 		// Also check for *.csproj files
 		if strings.HasSuffix(strings.ToLower(entry.Name()), ".csproj") {
 			fullPath := p.filesystem.Join(rootPath, entry.Name())
-			p.packagePaths[entry.Name()] = fullPath
+			p.packagePaths = append(p.packagePaths, fullPath)
+			p.configDirs[fullPath] = rootPath
 		}
 	}
-	
+
 	return nil
 }
 
@@ -66,12 +66,13 @@ func (p *PackageSignal) GenerateServices(ctx context.Context) ([]types.Service, 
 
 	var services []types.Service
 	for _, fw := range frameworks {
+		buildPath := p.configDirs[fw.ConfigPath]
 		service := types.Service{
-			Name:      p.filesystem.Base(p.currentRootPath),
+			Name:      p.filesystem.Base(buildPath),
 			Network:   fw.Network,
 			Runtime:   fw.Runtime,
 			Build:     fw.Build,
-			BuildPath: p.currentRootPath,
+			BuildPath: buildPath,
 			Configs: []types.ConfigRef{
 				{Type: "package", Path: fw.ConfigPath},
 			},
@@ -93,92 +94,43 @@ type PackageFramework struct {
 func (p *PackageSignal) detectFrameworksFromPackages() []PackageFramework {
 	var frameworks []PackageFramework
 
-	// Node.js package.json
-	if packagePath, found := p.packagePaths["package.json"]; found {
-		if fw := p.analyzePackageJson(packagePath); fw != nil {
-			frameworks = append(frameworks, *fw)
-		}
-	}
+	// Process all package files
+	for _, packagePath := range p.packagePaths {
+		filename := p.filesystem.Base(packagePath)
+		var fw *PackageFramework
 
-	// Python requirements.txt / pyproject.toml
-	if requirementsPath, found := p.packagePaths["requirements.txt"]; found {
-		if fw := p.analyzeRequirements(requirementsPath); fw != nil {
-			frameworks = append(frameworks, *fw)
-		}
-	}
-
-	if pyprojectPath, found := p.packagePaths["pyproject.toml"]; found {
-		if fw := p.analyzePyProject(pyprojectPath); fw != nil {
-			frameworks = append(frameworks, *fw)
-		}
-	}
-
-	// Go go.mod
-	if goModPath, found := p.packagePaths["go.mod"]; found {
-		if fw := p.analyzeGoMod(goModPath); fw != nil {
-			frameworks = append(frameworks, *fw)
-		}
-	}
-
-	// Rust Cargo.toml
-	if cargoPath, found := p.packagePaths["Cargo.toml"]; found {
-		if fw := p.analyzeCargo(cargoPath); fw != nil {
-			frameworks = append(frameworks, *fw)
-		}
-	}
-
-	// PHP composer.json
-	if composerPath, found := p.packagePaths["composer.json"]; found {
-		if fw := p.analyzeComposer(composerPath); fw != nil {
-			frameworks = append(frameworks, *fw)
-		}
-	}
-
-	// Ruby Gemfile
-	if gemfilePath, found := p.packagePaths["Gemfile"]; found {
-		if fw := p.analyzeGemfile(gemfilePath); fw != nil {
-			frameworks = append(frameworks, *fw)
-		}
-	}
-
-	// Java/Kotlin/Scala
-	if pomPath, found := p.packagePaths["pom.xml"]; found {
-		if fw := p.analyzePom(pomPath); fw != nil {
-			frameworks = append(frameworks, *fw)
-		}
-	}
-
-	// Check for gradle files
-	if gradlePath, found := p.packagePaths["build.gradle"]; found {
-		if fw := p.analyzeGradle(gradlePath); fw != nil {
-			frameworks = append(frameworks, *fw)
-		}
-	} else if gradlePath, found := p.packagePaths["build.gradle.kts"]; found {
-		if fw := p.analyzeGradle(gradlePath); fw != nil {
-			frameworks = append(frameworks, *fw)
-		}
-	}
-
-	// C#/.NET - check for any .csproj file
-	for filename, path := range p.packagePaths {
-		if strings.HasSuffix(strings.ToLower(filename), ".csproj") {
-			if fw := p.analyzeCsproj(path); fw != nil {
-				frameworks = append(frameworks, *fw)
+		// Determine file type and analyze
+		switch strings.ToLower(filename) {
+		case "package.json":
+			fw = p.analyzePackageJson(packagePath)
+		case "requirements.txt":
+			fw = p.analyzeRequirements(packagePath)
+		case "pyproject.toml":
+			fw = p.analyzePyProject(packagePath)
+		case "go.mod":
+			fw = p.analyzeGoMod(packagePath)
+		case "cargo.toml":
+			fw = p.analyzeCargo(packagePath)
+		case "composer.json":
+			fw = p.analyzeComposer(packagePath)
+		case "gemfile":
+			fw = p.analyzeGemfile(packagePath)
+		case "pom.xml":
+			fw = p.analyzePom(packagePath)
+		case "build.gradle", "build.gradle.kts":
+			fw = p.analyzeGradle(packagePath)
+		case "package.swift":
+			fw = p.analyzeSwiftPackage(packagePath)
+		case "mix.exs":
+			fw = p.analyzeMix(packagePath)
+		default:
+			// Check for .csproj files
+			if strings.HasSuffix(strings.ToLower(filename), ".csproj") {
+				fw = p.analyzeCsproj(packagePath)
 			}
-			break // Only process one csproj file
 		}
-	}
 
-	// Swift Package.swift
-	if swiftPath, found := p.packagePaths["Package.swift"]; found {
-		if fw := p.analyzeSwiftPackage(swiftPath); fw != nil {
-			frameworks = append(frameworks, *fw)
-		}
-	}
-
-	// Elixir mix.exs
-	if mixPath, found := p.packagePaths["mix.exs"]; found {
-		if fw := p.analyzeMix(mixPath); fw != nil {
+		if fw != nil {
 			frameworks = append(frameworks, *fw)
 		}
 	}
@@ -202,131 +154,89 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 		return nil
 	}
 
-	allDeps := make(map[string]string)
-	for k, v := range pkg.Dependencies {
-		allDeps[k] = v
-	}
-	for k, v := range pkg.DevDependencies {
-		allDeps[k] = v
-	}
+	deps := pkg.Dependencies
 
 	// Frontend meta-frameworks (highest priority)
-	if _, found := allDeps["next"]; found {
+	if _, found := deps["next"]; found {
 		return &PackageFramework{Name: "Next.js", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := allDeps["nuxt"]; found {
+	if _, found := deps["nuxt"]; found {
 		return &PackageFramework{Name: "Nuxt.js", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := allDeps["@remix-run/react"]; found {
+	if _, found := deps["@remix-run/react"]; found {
 		return &PackageFramework{Name: "Remix", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := allDeps["@sveltejs/kit"]; found {
+	if _, found := deps["@sveltejs/kit"]; found {
 		return &PackageFramework{Name: "SvelteKit", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := allDeps["astro"]; found {
+	if _, found := deps["astro"]; found {
 		return &PackageFramework{Name: "Astro", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := allDeps["solid-start"]; found {
+	if _, found := deps["solid-start"]; found {
 		return &PackageFramework{Name: "SolidStart", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := allDeps["@builder.io/qwik"]; found {
+	if _, found := deps["@builder.io/qwik"]; found {
 		return &PackageFramework{Name: "Qwik", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
 
 	// Static site generators
-	if _, found := allDeps["gatsby"]; found {
+	if _, found := deps["gatsby"]; found {
 		return &PackageFramework{Name: "Gatsby", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := allDeps["@docusaurus/core"]; found {
+	if _, found := deps["@docusaurus/core"]; found {
 		return &PackageFramework{Name: "Docusaurus", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := allDeps["vuepress"]; found {
+	if _, found := deps["vuepress"]; found {
 		return &PackageFramework{Name: "VuePress", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := allDeps["@gridsome/cli"]; found {
+	if _, found := deps["@gridsome/cli"]; found {
 		return &PackageFramework{Name: "Gridsome", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
 
-	// Build tools that might indicate frontend apps
-	if _, found := allDeps["vite"]; found {
-		return &PackageFramework{Name: "Vite App", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
-	}
-	if _, found := allDeps["webpack"]; found {
-		return &PackageFramework{Name: "Webpack App", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
-	}
-	if _, found := allDeps["parcel"]; found {
-		return &PackageFramework{Name: "Parcel App", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
-	}
-	if _, found := allDeps["rollup"]; found {
-		return &PackageFramework{Name: "Rollup App", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
-	}
-
 	// Backend Node.js frameworks
-	if _, found := allDeps["express"]; found {
+	if _, found := deps["express"]; found {
 		return &PackageFramework{Name: "Express.js", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := allDeps["fastify"]; found {
+	if _, found := deps["fastify"]; found {
 		return &PackageFramework{Name: "Fastify", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := allDeps["koa"]; found {
+	if _, found := deps["koa"]; found {
 		return &PackageFramework{Name: "Koa.js", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := allDeps["hapi"]; found {
+	if _, found := deps["hapi"]; found {
 		return &PackageFramework{Name: "Hapi.js", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := allDeps["@nestjs/core"]; found {
+	if _, found := deps["@nestjs/core"]; found {
 		return &PackageFramework{Name: "NestJS", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := allDeps["apollo-server"]; found {
+	if _, found := deps["apollo-server"]; found {
 		return &PackageFramework{Name: "Apollo GraphQL", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := allDeps["@apollo/server"]; found {
+	if _, found := deps["@apollo/server"]; found {
 		return &PackageFramework{Name: "Apollo GraphQL Server", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := allDeps["strapi"]; found {
+	if _, found := deps["strapi"]; found {
 		return &PackageFramework{Name: "Strapi CMS", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := allDeps["@keystone-6/core"]; found {
+	if _, found := deps["@keystone-6/core"]; found {
 		return &PackageFramework{Name: "Keystone.js", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
 
 	// Frontend frameworks/libraries
-	if _, found := allDeps["react"]; found {
+	if _, found := deps["react-dom"]; found {
 		return &PackageFramework{Name: "React App", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := allDeps["vue"]; found {
+	if _, found := deps["vue"]; found {
 		return &PackageFramework{Name: "Vue.js App", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := allDeps["svelte"]; found {
+	if _, found := deps["svelte"]; found {
 		return &PackageFramework{Name: "Svelte App", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := allDeps["solid-js"]; found {
+	if _, found := deps["solid-js"]; found {
 		return &PackageFramework{Name: "Solid.js App", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := allDeps["@angular/core"]; found {
+	if _, found := deps["@angular/core"]; found {
 		return &PackageFramework{Name: "Angular", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
-	}
-
-	// Mobile frameworks
-	if _, found := allDeps["react-native"]; found {
-		return &PackageFramework{Name: "React Native", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
-	}
-	if _, found := allDeps["expo"]; found {
-		return &PackageFramework{Name: "Expo", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
-	}
-	if _, found := allDeps["@ionic/react"]; found {
-		return &PackageFramework{Name: "Ionic React", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
-	}
-	if _, found := allDeps["@ionic/angular"]; found {
-		return &PackageFramework{Name: "Ionic Angular", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
-	}
-
-	// Desktop frameworks
-	if _, found := allDeps["electron"]; found {
-		return &PackageFramework{Name: "Electron", ConfigPath: packagePath, Network: types.NetworkPrivate, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
-	}
-	if _, found := allDeps["@tauri-apps/api"]; found {
-		return &PackageFramework{Name: "Tauri", ConfigPath: packagePath, Network: types.NetworkPrivate, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
 
 	return nil
@@ -410,7 +320,7 @@ func (p *PackageSignal) analyzePyProject(pyprojectPath string) *PackageFramework
 		return &PackageFramework{Name: "Flask", ConfigPath: pyprojectPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
 
-	return &PackageFramework{Name: "Python Project", ConfigPath: pyprojectPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	return nil
 }
 
 func (p *PackageSignal) analyzeGoMod(goModPath string) *PackageFramework {
@@ -424,6 +334,9 @@ func (p *PackageSignal) analyzeGoMod(goModPath string) *PackageFramework {
 	// Web frameworks
 	if strings.Contains(content, "github.com/gin-gonic/gin") {
 		return &PackageFramework{Name: "Gin", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if strings.Contains(content, "github.com/go-chi/chi") {
+		return &PackageFramework{Name: "Chi", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
 	if strings.Contains(content, "github.com/gofiber/fiber") {
 		return &PackageFramework{Name: "Fiber", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -448,7 +361,7 @@ func (p *PackageSignal) analyzeGoMod(goModPath string) *PackageFramework {
 	}
 
 	// Generic Go service
-	return &PackageFramework{Name: "Go Service", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	return nil
 }
 
 func (p *PackageSignal) analyzeCargo(cargoPath string) *PackageFramework {
@@ -491,7 +404,7 @@ func (p *PackageSignal) analyzeCargo(cargoPath string) *PackageFramework {
 	}
 
 	// Generic Rust service
-	return &PackageFramework{Name: "Rust Service", ConfigPath: cargoPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	return nil
 }
 
 func (p *PackageSignal) analyzeComposer(composerPath string) *PackageFramework {
@@ -636,7 +549,7 @@ func (p *PackageSignal) analyzeGradle(gradlePath string) *PackageFramework {
 	}
 
 	// Generic JVM service
-	return &PackageFramework{Name: "JVM Service", ConfigPath: gradlePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	return nil
 }
 
 func (p *PackageSignal) analyzeCsproj(csprojPath string) *PackageFramework {
@@ -659,7 +572,7 @@ func (p *PackageSignal) analyzeCsproj(csprojPath string) *PackageFramework {
 	}
 
 	// Generic .NET service
-	return &PackageFramework{Name: ".NET Service", ConfigPath: csprojPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	return nil
 }
 
 func (p *PackageSignal) analyzeSwiftPackage(swiftPath string) *PackageFramework {
@@ -682,7 +595,7 @@ func (p *PackageSignal) analyzeSwiftPackage(swiftPath string) *PackageFramework 
 	}
 
 	// Generic Swift service
-	return &PackageFramework{Name: "Swift Service", ConfigPath: swiftPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	return nil
 }
 
 func (p *PackageSignal) analyzeMix(mixPath string) *PackageFramework {
@@ -702,7 +615,5 @@ func (p *PackageSignal) analyzeMix(mixPath string) *PackageFramework {
 	}
 
 	// Generic Elixir service
-	return &PackageFramework{Name: "Elixir Service", ConfigPath: mixPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	return nil
 }
-
-

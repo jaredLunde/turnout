@@ -10,10 +10,9 @@ import (
 )
 
 type HerokuProcfileSignal struct {
-	filesystem      fs.FileSystem
-	currentRootPath string
-	configPaths     []string
-	
+	filesystem  fs.FileSystem
+	configPaths []string          // all found Procfile files
+	configDirs  map[string]string // config path -> directory path
 }
 
 func NewHerokuProcfileSignal(filesystem fs.FileSystem) *HerokuProcfileSignal {
@@ -26,15 +25,14 @@ func (h *HerokuProcfileSignal) Confidence() int {
 
 func (h *HerokuProcfileSignal) Reset() {
 	h.configPaths = nil
-	h.currentRootPath = ""
+	h.configDirs = make(map[string]string)
 }
 
 func (h *HerokuProcfileSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
-	h.currentRootPath = rootPath
-	
 	if !entry.IsDir() && strings.EqualFold(entry.Name(), "Procfile") {
 		configPath := h.filesystem.Join(rootPath, entry.Name())
 		h.configPaths = append(h.configPaths, configPath)
+		h.configDirs[configPath] = rootPath
 	}
 	
 	return nil
@@ -51,6 +49,7 @@ func (h *HerokuProcfileSignal) GenerateServices(ctx context.Context) ([]types.Se
 		return nil, err
 	}
 
+	buildPath := h.configDirs[configPath]
 	var services []types.Service
 	for processType, command := range processes {
 		service := types.Service{
@@ -58,7 +57,7 @@ func (h *HerokuProcfileSignal) GenerateServices(ctx context.Context) ([]types.Se
 			Network:   determineNetworkFromProcfile(processType),
 			Runtime:   determineRuntimeFromProcfile(processType, command),
 			Build:     types.BuildFromSource, // Heroku builds from source
-			BuildPath: h.currentRootPath,
+			BuildPath: buildPath,
 			Configs: []types.ConfigRef{
 				{Type: "procfile", Path: configPath},
 			},

@@ -23,7 +23,8 @@ type GitFS struct {
 // NewGitFS creates a new GitFS instance
 func NewGitFS(repoURL, ref string) (*GitFS, error) {
 	if ref == "" {
-		ref = "main" // default branch
+		// Detect the actual default branch using git ls-remote
+		ref = detectDefaultBranch(repoURL)
 	}
 	
 	// Create temporary directory for cloning
@@ -161,4 +162,31 @@ func (gfs *GitFS) ensureCloned() error {
 		return gfs.clone()
 	}
 	return nil
+}
+
+// detectDefaultBranch tries to detect the default branch using git ls-remote
+func detectDefaultBranch(repoURL string) string {
+	// Try to get the default branch using git ls-remote HEAD
+	cmd := exec.Command("git", "ls-remote", "--symref", repoURL, "HEAD")
+	output, err := cmd.Output()
+	if err != nil {
+		// Fallback to "main"
+		return "main"
+	}
+
+	// Parse output like: "ref: refs/heads/master\tHEAD"
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	if len(lines) > 0 {
+		line := lines[0]
+		if strings.HasPrefix(line, "ref: refs/heads/") {
+			branch := strings.TrimPrefix(line, "ref: refs/heads/")
+			if idx := strings.Index(branch, "\t"); idx > 0 {
+				branch = branch[:idx]
+			}
+			return branch
+		}
+	}
+
+	// Fallback to "main"
+	return "main"
 }

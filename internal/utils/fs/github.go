@@ -55,7 +55,14 @@ func NewGitHubFSWithPath(owner, repo, ref, basePath string, token string) *GitHu
 	}
 
 	if ref == "" {
-		ref = "main" // default branch
+		// Detect the actual default branch
+		repo, _, err := client.Repositories.Get(ctx, owner, repo)
+		if err != nil {
+			// Fallback to "main" if we can't detect
+			ref = "main"
+		} else {
+			ref = repo.GetDefaultBranch()
+		}
 	}
 
 	return &GitHubFS{

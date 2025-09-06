@@ -9,10 +9,10 @@ import (
 )
 
 type FrameworkSignal struct {
-	filesystem      fs.FileSystem
-	currentRootPath string
-	observedFiles   map[string]bool // track observed files
-	observedDirs    map[string]bool // track observed directories
+	filesystem    fs.FileSystem
+	observedFiles map[string]string // filename -> full path
+	observedDirs  map[string]string // dirname -> full path
+	configDirs    map[string]string // config path -> directory path
 }
 
 func NewFrameworkSignal(filesystem fs.FileSystem) *FrameworkSignal {
@@ -24,20 +24,21 @@ func (f *FrameworkSignal) Confidence() int {
 }
 
 func (f *FrameworkSignal) Reset() {
-	f.observedFiles = make(map[string]bool)
-	f.observedDirs = make(map[string]bool)
-	f.currentRootPath = ""
+	f.observedFiles = make(map[string]string)
+	f.observedDirs = make(map[string]string)
+	f.configDirs = make(map[string]string)
 }
 
 func (f *FrameworkSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
-	f.currentRootPath = rootPath
-	
 	if entry.IsDir() {
-		f.observedDirs[entry.Name()] = true
+		fullPath := f.filesystem.Join(rootPath, entry.Name())
+		f.observedDirs[entry.Name()] = fullPath
 	} else {
-		f.observedFiles[entry.Name()] = true
+		fullPath := f.filesystem.Join(rootPath, entry.Name())
+		f.observedFiles[entry.Name()] = fullPath
+		f.configDirs[fullPath] = rootPath
 	}
-	
+
 	return nil
 }
 
@@ -46,12 +47,13 @@ func (f *FrameworkSignal) GenerateServices(ctx context.Context) ([]types.Service
 
 	var services []types.Service
 	for _, fw := range frameworks {
+		buildPath := f.configDirs[fw.ConfigPath]
 		service := types.Service{
-			Name:      f.filesystem.Base(f.currentRootPath),
+			Name:      f.filesystem.Base(buildPath),
 			Network:   fw.Network,
 			Runtime:   fw.Runtime,
 			Build:     fw.Build,
-			BuildPath: f.currentRootPath,
+			BuildPath: buildPath,
 			Configs: []types.ConfigRef{
 				{Type: "framework", Path: fw.ConfigPath},
 			},
@@ -199,16 +201,18 @@ func (f *FrameworkSignal) detectFrameworks() []Framework {
 	}
 
 	// Static site generators
-	if configPath := f.findConfigFile("gatsby-config.js", "gatsby-config.ts"); configPath != "" {
-		frameworks = append(frameworks, Framework{
-			Name: "Gatsby", ConfigPath: configPath,
-			Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource,
-		})
-	}
+	// (Gatsby already handled above in frontend frameworks section)
 
 	if configPath := f.findConfigFile("hugo.toml", "hugo.yaml", "config.toml", "config.yaml"); configPath != "" {
 		frameworks = append(frameworks, Framework{
 			Name: "Hugo", ConfigPath: configPath,
+			Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource,
+		})
+	}
+
+	if configPath := f.findConfigFile("tailwind.config.js", "tailwind.config.ts", "tailwind.config.mjs", "tailwind.config.cjs"); configPath != "" {
+		frameworks = append(frameworks, Framework{
+			Name: "Tailwind", ConfigPath: configPath,
 			Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource,
 		})
 	}
@@ -218,13 +222,13 @@ func (f *FrameworkSignal) detectFrameworks() []Framework {
 
 func (f *FrameworkSignal) findConfigFile(filenames ...string) string {
 	for _, filename := range filenames {
-		if f.observedFiles[filename] {
-			return f.filesystem.Join(f.currentRootPath, filename)
+		if fullPath, exists := f.observedFiles[filename]; exists {
+			return fullPath
 		}
 		// Also check case-insensitive
-		for observedFile := range f.observedFiles {
+		for observedFile, fullPath := range f.observedFiles {
 			if strings.EqualFold(observedFile, filename) {
-				return f.filesystem.Join(f.currentRootPath, observedFile)
+				return fullPath
 			}
 		}
 	}
@@ -232,7 +236,7 @@ func (f *FrameworkSignal) findConfigFile(filenames ...string) string {
 }
 
 func (f *FrameworkSignal) hasDirectory(dirName string) bool {
-	if f.observedDirs[dirName] {
+	if _, exists := f.observedDirs[dirName]; exists {
 		return true
 	}
 	// Also check case-insensitive

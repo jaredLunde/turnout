@@ -2,6 +2,7 @@ package signals
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/compose-spec/compose-go/v2/loader"
@@ -11,9 +12,9 @@ import (
 )
 
 type DockerComposeSignal struct {
-	filesystem      fs.FileSystem
-	currentRootPath string
-	composeFiles    []string // all found compose files
+	filesystem   fs.FileSystem
+	composeFiles []string              // all found compose files
+	composeDirs  map[string]string     // compose file path -> directory path
 }
 
 func NewDockerComposeSignal(filesystem fs.FileSystem) *DockerComposeSignal {
@@ -26,12 +27,10 @@ func (d *DockerComposeSignal) Confidence() int {
 
 func (d *DockerComposeSignal) Reset() {
 	d.composeFiles = nil
-	d.currentRootPath = ""
+	d.composeDirs = make(map[string]string)
 }
 
 func (d *DockerComposeSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
-	d.currentRootPath = rootPath
-	
 	if !entry.IsDir() {
 		// Try common compose file names
 		composeFiles := []string{
@@ -45,6 +44,7 @@ func (d *DockerComposeSignal) ObserveEntry(ctx context.Context, rootPath string,
 			if strings.EqualFold(entry.Name(), filename) {
 				composePath := d.filesystem.Join(rootPath, entry.Name())
 				d.composeFiles = append(d.composeFiles, composePath)
+				d.composeDirs[composePath] = rootPath
 				break // Only take the first match per priority
 			}
 		}
@@ -60,16 +60,26 @@ func (d *DockerComposeSignal) GenerateServices(ctx context.Context) ([]types.Ser
 
 	// Process the first compose file found (highest priority)
 	composePath := d.composeFiles[0]
+	workingDir := d.composeDirs[composePath]
 	
+	// Read compose file content through filesystem
+	content, err := d.filesystem.ReadFile(composePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read compose file %s: %w", composePath, err)
+	}
+
 	configDetails := composeTypes.ConfigDetails{
-		WorkingDir: d.currentRootPath,
+		WorkingDir: workingDir,
 		ConfigFiles: []composeTypes.ConfigFile{
-			{Filename: composePath},
+			{
+				Filename: composePath,
+				Content:  content,
+			},
 		},
 	}
 	
 	project, err := loader.LoadWithContext(ctx, configDetails, func(options *loader.Options) {
-		options.SetProjectName(d.filesystem.Base(d.currentRootPath), true)
+		options.SetProjectName(d.filesystem.Base(workingDir), true)
 	})
 	if err != nil {
 		return nil, err

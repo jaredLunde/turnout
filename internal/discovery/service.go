@@ -74,14 +74,36 @@ func (sd *ServiceDiscovery) Discover(ctx context.Context, rootPath string) ([]ty
 	// Get the base path for the filesystem
 	basePath := fs.GetBasePath(rootPath)
 
-	var results []signalResult
+	// Reset all signals ONCE at the start
+	for _, signal := range sd.signals {
+		signal.Reset()
+	}
+
 	var lastCriticalError error
 
-	// Do our own efficient walk that doesn't duplicate ReadDir calls
-	err := sd.efficientWalk(filesystem, basePath, 0, 4, &results, &lastCriticalError, ctx)
-
+	// Walk the entire repo using a stack instead of recursion
+	err := sd.walkRepoIterative(ctx, filesystem, basePath, 4, &lastCriticalError)
 	if err != nil {
 		return nil, fmt.Errorf("filesystem walk failed: %w", err)
+	}
+
+	// NOW generate services from all signals with their full accumulated context
+	var results []signalResult
+	for _, signal := range sd.signals {
+		services, err := signal.GenerateServices(ctx)
+		if err != nil {
+			if isCriticalError(err) {
+				lastCriticalError = err
+			}
+			continue
+		}
+		if len(services) > 0 {
+			results = append(results, signalResult{
+				services:   services,
+				confidence: signal.Confidence(),
+				signal:     signal,
+			})
+		}
 	}
 
 	// If we found no services but had critical errors, surface the error
@@ -94,10 +116,10 @@ func (sd *ServiceDiscovery) Discover(ctx context.Context, rootPath string) ([]ty
 }
 
 func triangulateServices(results []signalResult) []types.Service {
-	// Build service mapping by build context (most reliable indicator)
+	// Build service mapping by build path (directory-based merging)
 	buildPathMap := make(map[string][]serviceWithSignal)
 
-	// Group services by their build path (if they have one)
+	// Group services by their build path
 	for _, result := range results {
 		for _, service := range result.services {
 			if service.BuildPath != "" {
@@ -118,14 +140,20 @@ func triangulateServices(results []signalResult) []types.Service {
 			continue
 		}
 
-		// Sort by confidence (highest first)
-		// Use the highest confidence service as base, merge others
+		// Use the highest confidence service as base, merge configs from all
 		var bestService types.Service
 		var allConfigs []types.ConfigRef
+		configSet := make(map[string]bool) // for deduplication
 		maxConfidence := 0
 
 		for _, sws := range serviceList {
-			allConfigs = append(allConfigs, sws.service.Configs...)
+			for _, config := range sws.service.Configs {
+				configKey := config.Type + ":" + config.Path
+				if !configSet[configKey] {
+					allConfigs = append(allConfigs, config)
+					configSet[configKey] = true
+				}
+			}
 			if sws.confidence > maxConfidence {
 				maxConfidence = sws.confidence
 				bestService = sws.service
@@ -187,73 +215,55 @@ func (sd *ServiceDiscovery) shouldIgnoreDirectory(dirName string) bool {
 	return false
 }
 
-// efficientWalk performs recursive directory traversal with single-pass observation
-func (sd *ServiceDiscovery) efficientWalk(filesystem fs.FileSystem, path string, depth, maxDepth int, results *[]signalResult, lastCriticalError *error, ctx context.Context) error {
-	if depth > maxDepth {
-		return nil
-	}
+type walkItem struct {
+	path  string
+	depth int
+}
 
-	// Skip ignored directories
-	dirName := filesystem.Base(path)
-	if sd.shouldIgnoreDirectory(dirName) {
-		return nil
-	}
+// walkRepoIterative performs iterative directory traversal using a stack
+func (sd *ServiceDiscovery) walkRepoIterative(ctx context.Context, filesystem fs.FileSystem, rootPath string, maxDepth int, lastCriticalError *error) error {
+	// Use a stack instead of recursion
+	stack := []walkItem{{path: rootPath, depth: 0}}
 
-	// Reset all signals for this directory
-	for _, signal := range sd.signals {
-		signal.Reset()
-	}
+	for len(stack) > 0 {
+		// Pop from stack
+		current := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
 
-	var subdirs []string
-
-	// Single pass: observe each entry and collect subdirectories
-	for entry, err := range filesystem.ReadDir(path) {
-		if err != nil {
-			if isCriticalError(err) {
-				*lastCriticalError = err
-			}
+		if current.depth > maxDepth {
 			continue
 		}
 
-		// Collect subdirectories for recursion
-		if entry.IsDir() {
-			subdirs = append(subdirs, entry.Name())
+		// Skip ignored directories
+		dirName := filesystem.Base(current.path)
+		if sd.shouldIgnoreDirectory(dirName) {
+			continue
 		}
 
-		// Let all signals observe this entry
-		for _, signal := range sd.signals {
-			if err := signal.ObserveEntry(ctx, path, entry); err != nil {
+		// Read directory and let signals observe ALL files
+		for entry, err := range filesystem.ReadDir(current.path) {
+			if err != nil {
 				if isCriticalError(err) {
 					*lastCriticalError = err
 				}
-				// Continue with other signals even if one fails
+				continue
 			}
-		}
-	}
 
-	// Generate services from all signals
-	for _, signal := range sd.signals {
-		services, err := signal.GenerateServices(ctx)
-		if err != nil {
-			if isCriticalError(err) {
-				*lastCriticalError = err
+			// Let all signals observe this entry - they build up global repo state
+			for _, signal := range sd.signals {
+				if err := signal.ObserveEntry(ctx, current.path, entry); err != nil {
+					if isCriticalError(err) {
+						*lastCriticalError = err
+					}
+					// Continue with other signals even if one fails
+				}
 			}
-			continue
-		}
-		if len(services) > 0 {
-			*results = append(*results, signalResult{
-				services:   services,
-				confidence: signal.Confidence(),
-				signal:     signal,
-			})
-		}
-	}
 
-	// Recurse into subdirectories
-	for _, dirName := range subdirs {
-		subPath := filesystem.Join(path, dirName)
-		if err := sd.efficientWalk(filesystem, subPath, depth+1, maxDepth, results, lastCriticalError, ctx); err != nil {
-			return err
+			// Add subdirectories to stack for processing
+			if entry.IsDir() {
+				subPath := filesystem.Join(current.path, entry.Name())
+				stack = append(stack, walkItem{path: subPath, depth: current.depth + 1})
+			}
 		}
 	}
 

@@ -10,9 +10,9 @@ import (
 )
 
 type DockerfileSignal struct {
-	filesystem      fs.FileSystem
-	currentRootPath string
-	dockerfiles     []string // all found Dockerfiles
+	filesystem    fs.FileSystem
+	dockerfiles   []string              // all found Dockerfiles
+	dockerfileDirs map[string]string    // dockerfile path -> directory path
 }
 
 func NewDockerfileSignal(filesystem fs.FileSystem) *DockerfileSignal {
@@ -25,15 +25,14 @@ func (d *DockerfileSignal) Confidence() int {
 
 func (d *DockerfileSignal) Reset() {
 	d.dockerfiles = nil
-	d.currentRootPath = ""
+	d.dockerfileDirs = make(map[string]string)
 }
 
 func (d *DockerfileSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
-	d.currentRootPath = rootPath
-	
 	if !entry.IsDir() && strings.EqualFold(entry.Name(), "Dockerfile") {
 		dockerfilePath := d.filesystem.Join(rootPath, entry.Name())
 		d.dockerfiles = append(d.dockerfiles, dockerfilePath)
+		d.dockerfileDirs[dockerfilePath] = rootPath
 	}
 	
 	return nil
@@ -46,8 +45,9 @@ func (d *DockerfileSignal) GenerateServices(ctx context.Context) ([]types.Servic
 
 	var services []types.Service
 	for _, dockerfilePath := range d.dockerfiles {
+		rootPath := d.dockerfileDirs[dockerfilePath]
 		service := types.Service{
-			Name:      d.inferServiceName(dockerfilePath, d.currentRootPath),
+			Name:      d.inferServiceName(dockerfilePath, rootPath),
 			Network:   types.NetworkPrivate, // Conservative default
 			Runtime:   types.RuntimeContinuous,
 			Build:     types.BuildFromSource,

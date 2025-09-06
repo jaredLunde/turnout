@@ -11,10 +11,9 @@ import (
 )
 
 type RailwaySignal struct {
-	filesystem      fs.FileSystem
-	currentRootPath string
-	configPaths     []string
-	
+	filesystem  fs.FileSystem
+	configPaths []string          // all found railway config files
+	configDirs  map[string]string // config path -> directory path
 }
 
 func NewRailwaySignal(filesystem fs.FileSystem) *RailwaySignal {
@@ -27,21 +26,21 @@ func (r *RailwaySignal) Confidence() int {
 
 func (r *RailwaySignal) Reset() {
 	r.configPaths = nil
-	r.currentRootPath = ""
+	r.configDirs = make(map[string]string)
 }
 
 func (r *RailwaySignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
-	r.currentRootPath = rootPath
-	
 	if !entry.IsDir() {
 		// Check for railway.json first (higher precedence), then railway.toml
 		if strings.EqualFold(entry.Name(), "railway.json") {
 			configPath := r.filesystem.Join(rootPath, entry.Name())
 			r.configPaths = append(r.configPaths, configPath)
+			r.configDirs[configPath] = rootPath
 		} else if strings.EqualFold(entry.Name(), "railway.toml") && len(r.configPaths) == 0 {
 			// Only set if we haven't already found railway.json
 			configPath := r.filesystem.Join(rootPath, entry.Name())
 			r.configPaths = append(r.configPaths, configPath)
+			r.configDirs[configPath] = rootPath
 		}
 	}
 	
@@ -60,13 +59,14 @@ func (r *RailwaySignal) GenerateServices(ctx context.Context) ([]types.Service, 
 		return nil, err
 	}
 
+	buildPath := r.configDirs[configPath]
 	// Railway config defines a single service (unlike compose which can have multiple)
 	service := types.Service{
-		Name:      r.inferServiceNameFromPath(r.currentRootPath),
+		Name:      r.inferServiceNameFromPath(buildPath),
 		Network:   determineNetworkFromRailway(config),
 		Runtime:   types.RuntimeContinuous, // Railway services are continuous
 		Build:     determineBuildFromRailway(config),
-		BuildPath: r.currentRootPath, // Railway builds from the directory containing the config
+		BuildPath: buildPath, // Railway builds from the directory containing the config
 		Configs: []types.ConfigRef{
 			{Type: "railway", Path: configPath},
 		},

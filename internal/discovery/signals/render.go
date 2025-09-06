@@ -10,9 +10,9 @@ import (
 )
 
 type RenderSignal struct {
-	filesystem      fs.FileSystem
-	currentRootPath string
-	configPaths     []string
+	filesystem  fs.FileSystem
+	configPaths []string          // all found render.yaml files
+	configDirs  map[string]string // config path -> directory path
 }
 
 func NewRenderSignal(filesystem fs.FileSystem) *RenderSignal {
@@ -25,15 +25,14 @@ func (r *RenderSignal) Confidence() int {
 
 func (r *RenderSignal) Reset() {
 	r.configPaths = nil
-	r.currentRootPath = ""
+	r.configDirs = make(map[string]string)
 }
 
 func (r *RenderSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
-	r.currentRootPath = rootPath
-	
 	if !entry.IsDir() && strings.EqualFold(entry.Name(), "render.yaml") {
 		configPath := r.filesystem.Join(rootPath, entry.Name())
 		r.configPaths = append(r.configPaths, configPath)
+		r.configDirs[configPath] = rootPath
 	}
 	
 	return nil
@@ -52,6 +51,7 @@ func (r *RenderSignal) GenerateServices(ctx context.Context) ([]types.Service, e
 			continue // Skip broken configs
 		}
 
+		buildPath := r.configDirs[configPath]
 		// Add regular services
 		for _, renderService := range config.Services {
 			service := types.Service{
@@ -59,7 +59,7 @@ func (r *RenderSignal) GenerateServices(ctx context.Context) ([]types.Service, e
 				Network:   determineNetworkFromRender(renderService),
 				Runtime:   determineRuntimeFromRender(renderService),
 				Build:     determineBuildFromRender(renderService),
-				BuildPath: r.currentRootPath, // Render builds from repo root by default
+				BuildPath: buildPath, // Render builds from repo root by default
 				Configs: []types.ConfigRef{
 					{Type: "render", Path: configPath},
 				},

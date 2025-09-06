@@ -17,7 +17,8 @@
       "Bash(mise run test:*)",
       "Bash(mise run lint:*)",
       "Bash(git stash:*)",
-      "Bash(dprint fmt:*)"
+      "Bash(dprint fmt:*)",
+      "Bash(./turnout github://docker/awesome-compose)"
     ],
     "deny": [],
     "ask": []

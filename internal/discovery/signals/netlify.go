@@ -10,9 +10,9 @@ import (
 )
 
 type NetlifySignal struct {
-	filesystem      fs.FileSystem
-	currentRootPath string
-	configPaths     []string
+	filesystem  fs.FileSystem
+	configPaths []string          // all found netlify.toml files
+	configDirs  map[string]string // config path -> directory path
 }
 
 func NewNetlifySignal(filesystem fs.FileSystem) *NetlifySignal {
@@ -25,15 +25,14 @@ func (n *NetlifySignal) Confidence() int {
 
 func (n *NetlifySignal) Reset() {
 	n.configPaths = nil
-	n.currentRootPath = ""
+	n.configDirs = make(map[string]string)
 }
 
 func (n *NetlifySignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
-	n.currentRootPath = rootPath
-	
 	if !entry.IsDir() && strings.EqualFold(entry.Name(), "netlify.toml") {
 		configPath := n.filesystem.Join(rootPath, entry.Name())
 		n.configPaths = append(n.configPaths, configPath)
+		n.configDirs[configPath] = rootPath
 	}
 	
 	return nil
@@ -50,13 +49,14 @@ func (n *NetlifySignal) GenerateServices(ctx context.Context) ([]types.Service, 
 		return nil, err
 	}
 
+	buildPath := n.configDirs[configPath]
 	// Netlify deploys are typically single-service static sites
 	service := types.Service{
-		Name:      n.filesystem.Base(n.currentRootPath),
+		Name:      n.filesystem.Base(buildPath),
 		Network:   types.NetworkPublic,     // Static sites are web-facing
 		Runtime:   types.RuntimeContinuous, // CDN serves continuously
 		Build:     types.BuildFromSource,   // Netlify builds from source
-		BuildPath: n.currentRootPath,
+		BuildPath: buildPath,
 		Configs: []types.ConfigRef{
 			{Type: "netlify", Path: configPath},
 		},

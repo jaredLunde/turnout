@@ -10,10 +10,9 @@ import (
 )
 
 type HerokuAppJsonSignal struct {
-	filesystem      fs.FileSystem
-	currentRootPath string
-	configPaths     []string
-	
+	filesystem  fs.FileSystem
+	configPaths []string          // all found app.json files
+	configDirs  map[string]string // config path -> directory path
 }
 
 func NewHerokuAppJsonSignal(filesystem fs.FileSystem) *HerokuAppJsonSignal {
@@ -26,15 +25,14 @@ func (h *HerokuAppJsonSignal) Confidence() int {
 
 func (h *HerokuAppJsonSignal) Reset() {
 	h.configPaths = nil
-	h.currentRootPath = ""
+	h.configDirs = make(map[string]string)
 }
 
 func (h *HerokuAppJsonSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
-	h.currentRootPath = rootPath
-	
 	if !entry.IsDir() && strings.EqualFold(entry.Name(), "app.json") {
 		configPath := h.filesystem.Join(rootPath, entry.Name())
 		h.configPaths = append(h.configPaths, configPath)
+		h.configDirs[configPath] = rootPath
 	}
 	
 	return nil
@@ -53,10 +51,11 @@ func (h *HerokuAppJsonSignal) GenerateServices(ctx context.Context) ([]types.Ser
 
 	var services []types.Service
 
+	buildPath := h.configDirs[configPath]
 	// app.json typically describes one app, but we model it as a service
 	serviceName := config.Name
 	if serviceName == "" {
-		serviceName = h.filesystem.Base(h.currentRootPath)
+		serviceName = h.filesystem.Base(buildPath)
 	}
 
 	service := types.Service{
@@ -64,7 +63,7 @@ func (h *HerokuAppJsonSignal) GenerateServices(ctx context.Context) ([]types.Ser
 		Network:   types.NetworkPublic,     // Heroku apps are typically web-facing
 		Runtime:   types.RuntimeContinuous, // Apps run continuously
 		Build:     types.BuildFromSource,   // Heroku builds from source
-		BuildPath: h.currentRootPath,
+		BuildPath: buildPath,
 		Configs: []types.ConfigRef{
 			{Type: "heroku-app-json", Path: configPath},
 		},
