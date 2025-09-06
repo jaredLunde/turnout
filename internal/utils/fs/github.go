@@ -360,7 +360,7 @@ func (e *lightweightDirEntry) Type() fs.FileMode {
 func (e *lightweightDirEntry) Info() (FileInfo, error) {
 	return &lightweightFileInfo{
 		name:  e.name,
-		isDir: e.IsDir(),
+		isDir: e.isDir,
 	}, nil
 }
 
@@ -385,8 +385,8 @@ func (fi *lightweightFileInfo) Sys() interface{}   { return nil }
 // zipFileInfo wraps zip.File to implement FileInfo
 type zipFileInfo struct {
 	*zip.File
-	isDir bool
 	name  string
+	isDir bool
 }
 
 func (fi *zipFileInfo) Name() string {
