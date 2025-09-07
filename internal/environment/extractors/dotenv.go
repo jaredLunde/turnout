@@ -54,11 +54,11 @@ func (d *DotEnvExtractor) getFileConfidence(filename string) int {
 	switch {
 	case filename == ".env":
 		return 85 // High confidence for main env file
-	case strings.Contains(filename, "production"):
+	case strings.HasSuffix(filename, "prod"), strings.HasSuffix(filename, "prod"):
 		return 90 // Very high for production
-	case strings.Contains(filename, "example"):
+	case strings.HasSuffix(filename, "example"):
 		return 30 // Low confidence for example files
 	default:
-		return 75 // Good confidence for other env files
+		return 50 // Good confidence for other env files
 	}
 }
