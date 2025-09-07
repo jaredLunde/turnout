@@ -21,7 +21,8 @@
       "Bash(./turnout *)",
       "Bash(chmod:*)",
       "Read(//private/**)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Read(//Users/jared/Code/OSS/operations-deployment-charts/**)"
     ],
     "deny": [],
     "ask": []

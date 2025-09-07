@@ -266,6 +266,14 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 	}
 
 	// High-confidence separate workers (lowest priority - only when no web framework detected)
+	// Infrastructure services
+	if _, found := deps["@temporalio/worker"]; found {
+		return &PackageFramework{Name: "Temporal Worker", ConfigPath: packagePath, Network: types.NetworkNone, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if _, found := deps["kafkajs"]; found {
+		return &PackageFramework{Name: "Kafka Consumer", ConfigPath: packagePath, Network: types.NetworkNone, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	// Generic queue libraries
 	workerLibs := []string{"bull", "bee-queue", "agenda", "kue", "node-resque"}
 	for _, lib := range workerLibs {
 		if _, found := deps[lib]; found {
@@ -333,6 +341,17 @@ func (p *PackageSignal) analyzeRequirements(requirementsPath string) *PackageFra
 	}
 
 	// High-confidence separate workers (lowest priority - only when no web framework detected)
+	// Infrastructure services
+	if strings.Contains(content, "temporalio") {
+		return &PackageFramework{Name: "Temporal Worker", ConfigPath: requirementsPath, Network: types.NetworkNone, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if strings.Contains(content, "kafka-python") || strings.Contains(content, "confluent-kafka") {
+		return &PackageFramework{Name: "Kafka Consumer", ConfigPath: requirementsPath, Network: types.NetworkNone, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if strings.Contains(content, "ray") && strings.Contains(content, "ray[serve]") {
+		return &PackageFramework{Name: "Ray Worker", ConfigPath: requirementsPath, Network: types.NetworkNone, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	// Generic queue libraries
 	workerLibs := []string{"celery", "rq", "dramatiq", "huey"}
 	for _, lib := range workerLibs {
 		if strings.Contains(content, lib) {

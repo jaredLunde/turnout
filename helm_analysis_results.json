@@ -1,0 +1,1736 @@
+Processing source tree: /Users/jared/Code/OSS/operations-deployment-charts/charts
+Discovered 88 services:
+  - mediawiki: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/mediawiki
+    Image: placeholder-for-mediawiki-image-name
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/mediawiki/Chart.yaml
+
+  - thumbor: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/thumbor
+    Image: prometheus-statsd-exporter
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/thumbor/Chart.yaml
+
+  - growthbook-backend: Network=private, Runtime=continuous, Build=source
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/growthbook/charts/growthbook-backend
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/growthbook/charts/growthbook-backend/Chart.yaml
+
+  - cloudnative-pg-cluster: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/cloudnative-pg-cluster
+    Image: docker-registry.discovery.wmnet/repos/data-engineering/pgbouncer
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/cloudnative-pg-cluster/Chart.yaml
+
+  - cloudnative-pg: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/cloudnative-pg
+    Image: docker-registry.wikimedia.org/repos/data-engineering/postgresql-kubernetes/cloudnative-pg
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/cloudnative-pg/Chart.yaml
+
+  - termbox: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/termbox
+    Image: wikimedia/wikibase-termbox
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/termbox/Chart.yaml
+
+  - flink-app: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/flink-app
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/flink-app/Chart.yaml
+
+  - kserve-inference: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/kserve-inference
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/kserve-inference/Chart.yaml
+
+  - cfssl-issuer: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/cfssl-issuer
+    Image: docker-registry.wikimedia.org/cfssl-issuer
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/cfssl-issuer/Chart.yaml
+
+  - calico: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/calico
+    Image: docker-registry.wikimedia.org
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/calico/Chart.yaml
+
+  - flink-kubernetes-operator: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/flink-kubernetes-operator
+    Image: flink-kubernetes-operator
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/flink-kubernetes-operator/Chart.yaml
+
+  - linkrecommendation: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/linkrecommendation
+    Image: wikimedia/research-mwaddlink
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/linkrecommendation/Chart.yaml
+
+  - datasets-config: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/datasets-config
+    Image: repos/data-engineering/dataset-config-store-service
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/datasets-config/Chart.yaml
+
+  - mpic: Network=public, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/mpic
+    Image: repos/data-engineering/mpic
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/mpic/Chart.yaml
+
+  - shellbox: Network=private, Runtime=continuous, Build=source
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/shellbox
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/shellbox/Chart.yaml
+
+  - kafka-dev: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/kafka-dev
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/kafka-dev/Chart.yaml
+
+  - raw: Network=private, Runtime=continuous, Build=source
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/raw
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/raw/Chart.yaml
+
+  - eventrouter: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/eventrouter
+    Image: docker-registry.wikimedia.org/eventrouter
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/eventrouter/Chart.yaml
+
+  - eventstreams: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/eventstreams
+    Image: docker-registry.wikimedia.org/repos/data-engineering/eventstreams
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/eventstreams/Chart.yaml
+
+  - growthbook: Network=private, Runtime=continuous, Build=source
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/growthbook
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/growthbook/Chart.yaml
+
+  - cloudnative-pg-crds: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/cloudnative-pg-crds
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/cloudnative-pg-crds/Chart.yaml
+
+  - knative-serving: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/knative-serving
+    Image: knative-net-istio-controller
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/knative-serving/Chart.yaml
+
+  - kartotherian: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/kartotherian
+    Image: wikimedia/mediawiki-services-kartotherian
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/kartotherian/Chart.yaml
+
+  - flink-kubernetes-operator-crds: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/flink-kubernetes-operator-crds
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/flink-kubernetes-operator-crds/Chart.yaml
+
+  - ratelimit: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/ratelimit
+    Image: ratelimit
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/ratelimit/Chart.yaml
+
+  - cert-manager: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/cert-manager
+    Image: quay.io/jetstack/cert-manager-controller
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/cert-manager/Chart.yaml
+
+  - mediawiki-dev: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/mediawiki-dev
+    Image: wikimedia/mediawiki-core
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/mediawiki-dev/Chart.yaml
+
+  - recommendation-api: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/recommendation-api
+    Image: wikimedia/mediawiki-services-recommendation-api
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/recommendation-api/Chart.yaml
+
+  - helm-state-metrics: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/helm-state-metrics
+    Image: docker-registry.wikimedia.org/helm-state-metrics
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/helm-state-metrics/Chart.yaml
+
+  - datahub: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/datahub
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/datahub/Chart.yaml
+
+  - toolhub: Network=public, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/toolhub
+    Image: wikimedia/wikimedia-toolhub
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/toolhub/Chart.yaml
+
+  - spark-operator: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/spark-operator
+    Image: spark3.3-operator
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/spark-operator/Chart.yaml
+
+  - datahub-frontend: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/datahub/charts/datahub-frontend
+    Image: repos/data-engineering/datahub/frontend
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/datahub/charts/datahub-frontend/Chart.yaml
+
+  - calico-crds: Network=private, Runtime=continuous, Build=source
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/calico-crds
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/calico-crds/Chart.yaml
+
+  - python-webapp: Network=private, Runtime=continuous, Build=source
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/python-webapp
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/python-webapp/Chart.yaml
+
+  - opensearch-operator-crds: Network=private, Runtime=continuous, Build=source
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/opensearch-operator-crds
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/opensearch-operator-crds/Chart.yaml
+
+  - developer-portal: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/developer-portal
+    Image: wikimedia/wikimedia-developer-portal
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/developer-portal/Chart.yaml
+
+  - chromium-render: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/chromium-render
+    Image: wikimedia/mediawiki-services-chromium-render
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/chromium-render/Chart.yaml
+
+  - wikifeeds: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/wikifeeds
+    Image: wikimedia/mediawiki-services-wikifeeds
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/wikifeeds/Chart.yaml
+
+  - kask: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/kask
+    Image: repos/mediawiki/services/kask
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/kask/Chart.yaml
+
+  - cxserver: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/cxserver
+    Image: wikimedia/mediawiki-services-cxserver
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/cxserver/Chart.yaml
+
+  - changeprop: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/changeprop
+    Image: wikimedia/mediawiki-services-change-propagation
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/changeprop/Chart.yaml
+
+  - ceph-csi-cephfs: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/ceph-csi-cephfs
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/ceph-csi-cephfs/Chart.yaml
+
+  - benthos: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/benthos
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/benthos/Chart.yaml
+
+  - statsd-exporter: Network=private, Runtime=continuous, Build=source
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/statsd-exporter
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/statsd-exporter/Chart.yaml
+
+  - push-notifications: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/push-notifications
+    Image: wikimedia/mediawiki-services-push-notifications
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/push-notifications/Chart.yaml
+
+  - spark-history: Network=public, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/spark-history
+    Image: repos/data-engineering/spark/spark3.4-history
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/spark-history/Chart.yaml
+
+  - ceph-csi-rbd: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/ceph-csi-rbd
+    Image: layering
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/ceph-csi-rbd/Chart.yaml
+
+  - kube-state-metrics: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/kube-state-metrics
+    Image: kube-state-metrics
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/kube-state-metrics/Chart.yaml
+
+  - k8s-controller-sidecars: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/k8s-controller-sidecars
+    Image: k8s-controller-sidecars
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/k8s-controller-sidecars/Chart.yaml
+
+  - function-evaluator: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/function-evaluator
+    Image: repos/abstract-wiki/wikifunctions/function-evaluator/some-such-image
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/function-evaluator/Chart.yaml
+
+  - external-services: Network=private, Runtime=continuous, Build=source
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/external-services
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/external-services/Chart.yaml
+
+  - kserve: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/kserve
+    Image: kserve-agent
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/kserve/Chart.yaml
+
+  - calculator-service: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/calculator-service
+    Image: blubber-doc-example-calculator-service
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/calculator-service/Chart.yaml
+
+  - apertium: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/apertium
+    Image: wikimedia/mediawiki-services-apertium
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/apertium/Chart.yaml
+
+  - tegola-vector-tiles: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/tegola-vector-tiles
+    Image: wikimedia/operations-software-tegola
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/tegola-vector-tiles/Chart.yaml
+
+  - cfssl-issuer-crds: Network=private, Runtime=continuous, Build=source
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/cfssl-issuer-crds
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/cfssl-issuer-crds/Chart.yaml
+
+  - jaeger: Network=public, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/jaeger
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/jaeger/Chart.yaml
+
+  - mobileapps: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/mobileapps
+    Image: wikimedia/mediawiki-services-mobileapps
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/mobileapps/Chart.yaml
+
+  - validating-admission-policies: Network=private, Runtime=continuous, Build=source
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/validating-admission-policies
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/validating-admission-policies/Chart.yaml
+
+  - citoid: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/citoid
+    Image: wikimedia/mediawiki-services-citoid
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/citoid/Chart.yaml
+
+  - coredns: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/coredns
+    Image: docker-registry.wikimedia.org/coredns
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/coredns/Chart.yaml
+
+  - chart-renderer: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/chart-renderer
+    Image: repos/mediawiki/services/chart-renderer
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/chart-renderer/Chart.yaml
+
+  - zotero: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/zotero
+    Image: repos/mediawiki/services/zotero
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/zotero/Chart.yaml
+
+  - common: Network=private, Runtime=continuous, Build=source
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/jaeger/charts/common
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/jaeger/charts/common/Chart.yaml
+
+  - opentelemetry-collector: Network=public, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/opentelemetry-collector
+    Image: otel/opentelemetry-collector-contrib
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/opentelemetry-collector/Chart.yaml
+
+  - airflow: Network=public, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/airflow
+    Image: repos/data-engineering/airflow
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/airflow/Chart.yaml
+
+  - datahub-mce-consumer: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/datahub/charts/datahub-mce-consumer
+    Image: repos/data-engineering/datahub/mce-consumer
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/datahub/charts/datahub-mce-consumer/Chart.yaml
+
+  - api-gateway: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/api-gateway
+    Image: envoy
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/api-gateway/Chart.yaml
+
+  - mediawiki-dumps-legacy: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/mediawiki-dumps-legacy
+    Image: override_me
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/mediawiki-dumps-legacy/Chart.yaml
+
+  - machinetranslation: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/machinetranslation
+    Image: wikimedia/mediawiki-services-machinetranslation
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/machinetranslation/Chart.yaml
+
+  - superset: Network=private, Runtime=continuous, Build=source
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/superset
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/superset/Chart.yaml
+
+  - datahub-gms: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/datahub/charts/datahub-gms
+    Image: repos/data-engineering/datahub/gms
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/datahub/charts/datahub-gms/Chart.yaml
+
+  - growthbook-frontend: Network=private, Runtime=continuous, Build=source
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/growthbook/charts/growthbook-frontend
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/growthbook/charts/growthbook-frontend/Chart.yaml
+
+  - miscweb: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/miscweb
+    Image: sre/miscweb/statictendril
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/miscweb/Chart.yaml
+
+  - aqs-http-gateway: Network=private, Runtime=continuous, Build=source
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/aqs-http-gateway
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/aqs-http-gateway/Chart.yaml
+
+  - opensearch-operator: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/opensearch-operator
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/opensearch-operator/Chart.yaml
+
+  - eventgate: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/eventgate
+    Image: docker-registry.wikimedia.org/repos/data-engineering/eventgate-wikimedia
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/eventgate/Chart.yaml
+
+  - knative-serving-crds: Network=public, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/knative-serving-crds
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/knative-serving-crds/Chart.yaml
+
+  - echoserver: Network=private, Runtime=continuous, Build=source
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/echoserver
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/echoserver/Chart.yaml
+
+  - blunderbuss: Network=private, Runtime=continuous, Build=source
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/blunderbuss
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/blunderbuss/Chart.yaml
+
+  - function-orchestrator: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/function-orchestrator
+    Image: repos/abstract-wiki/wikifunctions/function-orchestrator
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/function-orchestrator/Chart.yaml
+
+  - mcrouter: Network=private, Runtime=continuous, Build=source
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/mcrouter
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/mcrouter/Chart.yaml
+
+  - datahub-mae-consumer: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/datahub/charts/datahub-mae-consumer
+    Image: repos/data-engineering/datahub/mae-consumer
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/datahub/charts/datahub-mae-consumer/Chart.yaml
+
+  - secrets: Network=private, Runtime=continuous, Build=source
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/secrets
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/secrets/Chart.yaml
+
+  - mathoid: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/mathoid
+    Image: repos/mediawiki/services/mathoid
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/mathoid/Chart.yaml
+
+  - ipoid: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/ipoid
+    Image: repos/mediawiki/services/ipoid
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/ipoid/Chart.yaml
+
+  - mediawiki-common: Network=private, Runtime=continuous, Build=image
+    BuildPath: /Users/jared/Code/OSS/operations-deployment-charts/charts/mediawiki-common
+    Image: placeholder-for-mediawiki-image-name
+    Config sources (1):
+      - helm: /Users/jared/Code/OSS/operations-deployment-charts/charts/mediawiki-common/Chart.yaml
+
+
+JSON Export:
+[
+  {
+    "Name": "mediawiki",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/mediawiki",
+    "Image": "placeholder-for-mediawiki-image-name",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/mediawiki/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "thumbor",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/thumbor",
+    "Image": "prometheus-statsd-exporter",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/thumbor/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "growthbook-backend",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 0,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/growthbook/charts/growthbook-backend",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/growthbook/charts/growthbook-backend/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "cloudnative-pg-cluster",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/cloudnative-pg-cluster",
+    "Image": "docker-registry.discovery.wmnet/repos/data-engineering/pgbouncer",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/cloudnative-pg-cluster/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "cloudnative-pg",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/cloudnative-pg",
+    "Image": "docker-registry.wikimedia.org/repos/data-engineering/postgresql-kubernetes/cloudnative-pg",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/cloudnative-pg/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "termbox",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/termbox",
+    "Image": "wikimedia/wikibase-termbox",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/termbox/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "flink-app",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/flink-app",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/flink-app/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "kserve-inference",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/kserve-inference",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/kserve-inference/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "cfssl-issuer",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/cfssl-issuer",
+    "Image": "docker-registry.wikimedia.org/cfssl-issuer",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/cfssl-issuer/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "calico",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/calico",
+    "Image": "docker-registry.wikimedia.org",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/calico/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "flink-kubernetes-operator",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/flink-kubernetes-operator",
+    "Image": "flink-kubernetes-operator",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/flink-kubernetes-operator/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "linkrecommendation",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/linkrecommendation",
+    "Image": "wikimedia/research-mwaddlink",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/linkrecommendation/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "datasets-config",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/datasets-config",
+    "Image": "repos/data-engineering/dataset-config-store-service",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/datasets-config/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "mpic",
+    "Network": 2,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/mpic",
+    "Image": "repos/data-engineering/mpic",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/mpic/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "shellbox",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 0,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/shellbox",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/shellbox/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "kafka-dev",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/kafka-dev",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/kafka-dev/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "raw",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 0,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/raw",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/raw/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "eventrouter",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/eventrouter",
+    "Image": "docker-registry.wikimedia.org/eventrouter",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/eventrouter/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "eventstreams",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/eventstreams",
+    "Image": "docker-registry.wikimedia.org/repos/data-engineering/eventstreams",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/eventstreams/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "growthbook",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 0,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/growthbook",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/growthbook/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "cloudnative-pg-crds",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/cloudnative-pg-crds",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/cloudnative-pg-crds/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "knative-serving",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/knative-serving",
+    "Image": "knative-net-istio-controller",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/knative-serving/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "kartotherian",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/kartotherian",
+    "Image": "wikimedia/mediawiki-services-kartotherian",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/kartotherian/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "flink-kubernetes-operator-crds",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/flink-kubernetes-operator-crds",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/flink-kubernetes-operator-crds/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "ratelimit",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/ratelimit",
+    "Image": "ratelimit",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/ratelimit/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "cert-manager",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/cert-manager",
+    "Image": "quay.io/jetstack/cert-manager-controller",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/cert-manager/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "mediawiki-dev",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/mediawiki-dev",
+    "Image": "wikimedia/mediawiki-core",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/mediawiki-dev/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "recommendation-api",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/recommendation-api",
+    "Image": "wikimedia/mediawiki-services-recommendation-api",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/recommendation-api/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "helm-state-metrics",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/helm-state-metrics",
+    "Image": "docker-registry.wikimedia.org/helm-state-metrics",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/helm-state-metrics/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "datahub",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/datahub",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/datahub/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "toolhub",
+    "Network": 2,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/toolhub",
+    "Image": "wikimedia/wikimedia-toolhub",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/toolhub/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "spark-operator",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/spark-operator",
+    "Image": "spark3.3-operator",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/spark-operator/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "datahub-frontend",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/datahub/charts/datahub-frontend",
+    "Image": "repos/data-engineering/datahub/frontend",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/datahub/charts/datahub-frontend/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "calico-crds",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 0,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/calico-crds",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/calico-crds/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "python-webapp",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 0,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/python-webapp",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/python-webapp/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "opensearch-operator-crds",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 0,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/opensearch-operator-crds",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/opensearch-operator-crds/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "developer-portal",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/developer-portal",
+    "Image": "wikimedia/wikimedia-developer-portal",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/developer-portal/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "chromium-render",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/chromium-render",
+    "Image": "wikimedia/mediawiki-services-chromium-render",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/chromium-render/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "wikifeeds",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/wikifeeds",
+    "Image": "wikimedia/mediawiki-services-wikifeeds",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/wikifeeds/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "kask",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/kask",
+    "Image": "repos/mediawiki/services/kask",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/kask/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "cxserver",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/cxserver",
+    "Image": "wikimedia/mediawiki-services-cxserver",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/cxserver/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "changeprop",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/changeprop",
+    "Image": "wikimedia/mediawiki-services-change-propagation",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/changeprop/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "ceph-csi-cephfs",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/ceph-csi-cephfs",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/ceph-csi-cephfs/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "benthos",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/benthos",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/benthos/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "statsd-exporter",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 0,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/statsd-exporter",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/statsd-exporter/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "push-notifications",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/push-notifications",
+    "Image": "wikimedia/mediawiki-services-push-notifications",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/push-notifications/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "spark-history",
+    "Network": 2,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/spark-history",
+    "Image": "repos/data-engineering/spark/spark3.4-history",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/spark-history/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "ceph-csi-rbd",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/ceph-csi-rbd",
+    "Image": "layering",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/ceph-csi-rbd/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "kube-state-metrics",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/kube-state-metrics",
+    "Image": "kube-state-metrics",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/kube-state-metrics/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "k8s-controller-sidecars",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/k8s-controller-sidecars",
+    "Image": "k8s-controller-sidecars",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/k8s-controller-sidecars/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "function-evaluator",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/function-evaluator",
+    "Image": "repos/abstract-wiki/wikifunctions/function-evaluator/some-such-image",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/function-evaluator/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "external-services",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 0,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/external-services",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/external-services/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "kserve",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/kserve",
+    "Image": "kserve-agent",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/kserve/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "calculator-service",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/calculator-service",
+    "Image": "blubber-doc-example-calculator-service",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/calculator-service/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "apertium",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/apertium",
+    "Image": "wikimedia/mediawiki-services-apertium",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/apertium/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "tegola-vector-tiles",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/tegola-vector-tiles",
+    "Image": "wikimedia/operations-software-tegola",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/tegola-vector-tiles/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "cfssl-issuer-crds",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 0,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/cfssl-issuer-crds",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/cfssl-issuer-crds/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "jaeger",
+    "Network": 2,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/jaeger",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/jaeger/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "mobileapps",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/mobileapps",
+    "Image": "wikimedia/mediawiki-services-mobileapps",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/mobileapps/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "validating-admission-policies",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 0,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/validating-admission-policies",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/validating-admission-policies/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "citoid",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/citoid",
+    "Image": "wikimedia/mediawiki-services-citoid",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/citoid/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "coredns",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/coredns",
+    "Image": "docker-registry.wikimedia.org/coredns",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/coredns/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "chart-renderer",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/chart-renderer",
+    "Image": "repos/mediawiki/services/chart-renderer",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/chart-renderer/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "zotero",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/zotero",
+    "Image": "repos/mediawiki/services/zotero",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/zotero/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "common",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 0,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/jaeger/charts/common",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/jaeger/charts/common/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "opentelemetry-collector",
+    "Network": 2,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/opentelemetry-collector",
+    "Image": "otel/opentelemetry-collector-contrib",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/opentelemetry-collector/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "airflow",
+    "Network": 2,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/airflow",
+    "Image": "repos/data-engineering/airflow",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/airflow/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "datahub-mce-consumer",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/datahub/charts/datahub-mce-consumer",
+    "Image": "repos/data-engineering/datahub/mce-consumer",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/datahub/charts/datahub-mce-consumer/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "api-gateway",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/api-gateway",
+    "Image": "envoy",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/api-gateway/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "mediawiki-dumps-legacy",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/mediawiki-dumps-legacy",
+    "Image": "override_me",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/mediawiki-dumps-legacy/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "machinetranslation",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/machinetranslation",
+    "Image": "wikimedia/mediawiki-services-machinetranslation",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/machinetranslation/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "superset",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 0,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/superset",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/superset/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "datahub-gms",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/datahub/charts/datahub-gms",
+    "Image": "repos/data-engineering/datahub/gms",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/datahub/charts/datahub-gms/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "growthbook-frontend",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 0,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/growthbook/charts/growthbook-frontend",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/growthbook/charts/growthbook-frontend/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "miscweb",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/miscweb",
+    "Image": "sre/miscweb/statictendril",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/miscweb/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "aqs-http-gateway",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 0,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/aqs-http-gateway",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/aqs-http-gateway/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "opensearch-operator",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/opensearch-operator",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/opensearch-operator/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "eventgate",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/eventgate",
+    "Image": "docker-registry.wikimedia.org/repos/data-engineering/eventgate-wikimedia",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/eventgate/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "knative-serving-crds",
+    "Network": 2,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/knative-serving-crds",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/knative-serving-crds/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "echoserver",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 0,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/echoserver",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/echoserver/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "blunderbuss",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 0,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/blunderbuss",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/blunderbuss/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "function-orchestrator",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/function-orchestrator",
+    "Image": "repos/abstract-wiki/wikifunctions/function-orchestrator",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/function-orchestrator/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "mcrouter",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 0,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/mcrouter",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/mcrouter/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "datahub-mae-consumer",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/datahub/charts/datahub-mae-consumer",
+    "Image": "repos/data-engineering/datahub/mae-consumer",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/datahub/charts/datahub-mae-consumer/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "secrets",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 0,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/secrets",
+    "Image": "",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/secrets/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "mathoid",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/mathoid",
+    "Image": "repos/mediawiki/services/mathoid",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/mathoid/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "ipoid",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/ipoid",
+    "Image": "repos/mediawiki/services/ipoid",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/ipoid/Chart.yaml"
+      }
+    ]
+  },
+  {
+    "Name": "mediawiki-common",
+    "Network": 1,
+    "Runtime": 0,
+    "Build": 1,
+    "BuildPath": "/Users/jared/Code/OSS/operations-deployment-charts/charts/mediawiki-common",
+    "Image": "placeholder-for-mediawiki-image-name",
+    "Configs": [
+      {
+        "Type": "helm",
+        "Path": "/Users/jared/Code/OSS/operations-deployment-charts/charts/mediawiki-common/Chart.yaml"
+      }
+    ]
+  }
+]

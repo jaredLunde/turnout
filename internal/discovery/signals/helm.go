@@ -128,8 +128,12 @@ func (h *HelmSignal) determineBuildFromHelm(chartDir string) types.Build {
 }
 
 func (h *HelmSignal) extractImageFromHelm(chartDir string) string {
-	// Try to extract image from values.yaml
-	return h.getImageFromValues(chartDir)
+	// Try to extract primary image from values.yaml
+	images := h.getAllImagesFromValues(chartDir)
+	if len(images) > 0 {
+		return images[0] // Return primary image for now
+	}
+	return ""
 }
 
 func (h *HelmSignal) hasIngressOrLoadBalancer(chartDir string) bool {
@@ -226,33 +230,73 @@ func (h *HelmSignal) hasImageInTemplates(chartDir string) bool {
 }
 
 func (h *HelmSignal) getImageFromValues(chartDir string) string {
+	images := h.getAllImagesFromValues(chartDir)
+	if len(images) > 0 {
+		return images[0]
+	}
+	return ""
+}
+
+func (h *HelmSignal) getAllImagesFromValues(chartDir string) []string {
 	valuesPath := h.filesystem.Join(chartDir, "values.yaml")
 	content, err := h.filesystem.ReadFile(valuesPath)
 	if err != nil {
-		return ""
+		return nil
 	}
 	
 	var values map[string]interface{}
 	if err := yaml.Unmarshal(content, &values); err != nil {
-		return ""
+		return nil
+	}
+	
+	var images []string
+	imageSet := make(map[string]bool) // for deduplication
+	
+	// Try repository + name combination first (Pattern 3: cfssl-issuer style)
+	if imageMap, ok := values["image"].(map[string]interface{}); ok {
+		repository := h.getStringValue(imageMap, "repository")
+		name := h.getStringValue(imageMap, "name")
+		if repository != "" && name != "" {
+			// Combine repository and name
+			var fullImage string
+			if strings.HasSuffix(repository, "/") {
+				fullImage = repository + name
+			} else {
+				fullImage = repository + "/" + name
+			}
+			if !imageSet[fullImage] {
+				images = append(images, fullImage)
+				imageSet[fullImage] = true
+			}
+		}
 	}
 	
 	// Try common patterns for image specification
 	patterns := [][]string{
-		{"image", "repository"},
-		{"image", "name"},
-		{"image"},
-		{"app", "image"},
+		{"image", "repository"},  // Pattern 1: helm-state-metrics style
+		{"app", "image"},         // Pattern 2: kartotherian style  
+		{"image"},                // Simple image field
 		{"deployment", "image"},
+		// Pattern 5: Multiple components (cert-manager style)
+		{"webhook", "image", "repository"},
+		{"cainjector", "image", "repository"},
+		{"acmesolver", "image", "repository"},
+		{"startupapicheck", "image", "repository"},
 	}
 	
 	for _, pattern := range patterns {
 		if image := h.getNestedValue(values, pattern); image != "" {
-			return image
+			if !imageSet[image] {
+				images = append(images, image)
+				imageSet[image] = true
+			}
 		}
 	}
 	
-	return ""
+	// Also recursively search for any field named "image" or ending in "image"
+	h.findImagesRecursive(values, "", &images, imageSet)
+	
+	return images
 }
 
 func (h *HelmSignal) containsImageConfig(values map[string]interface{}) bool {
@@ -290,6 +334,41 @@ func (h *HelmSignal) getNestedValue(values map[string]interface{}, keys []string
 	}
 	
 	return ""
+}
+
+func (h *HelmSignal) getStringValue(m map[string]interface{}, key string) string {
+	if val, ok := m[key].(string); ok {
+		return val
+	}
+	return ""
+}
+
+func (h *HelmSignal) findImagesRecursive(values map[string]interface{}, path string, images *[]string, imageSet map[string]bool) {
+	for key, value := range values {
+		fullPath := key
+		if path != "" {
+			fullPath = path + "." + key
+		}
+		
+		// Check if this is an image field
+		if strings.Contains(strings.ToLower(key), "image") {
+			if str, ok := value.(string); ok && str != "" {
+				// Skip common non-image fields
+				if !strings.Contains(strings.ToLower(key), "pullpolicy") && 
+				   !strings.Contains(strings.ToLower(key), "tag") &&
+				   !strings.Contains(strings.ToLower(key), "version") &&
+				   len(str) > 0 && !imageSet[str] {
+					*images = append(*images, str)
+					imageSet[str] = true
+				}
+			}
+		}
+		
+		// Recurse into nested maps
+		if nestedMap, ok := value.(map[string]interface{}); ok {
+			h.findImagesRecursive(nestedMap, fullPath, images, imageSet)
+		}
+	}
 }
 
 // parseChartYaml reads and parses a Chart.yaml file using the filesystem interface
