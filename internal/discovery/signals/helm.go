@@ -6,8 +6,8 @@ import (
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
 	"github.com/railwayapp/turnout/internal/utils/fs"
-	"helm.sh/helm/v3/pkg/chart"
 	"gopkg.in/yaml.v3"
+	"helm.sh/helm/v3/pkg/chart"
 )
 
 type HelmSignal struct {
@@ -65,23 +65,24 @@ func (h *HelmSignal) GenerateServices(ctx context.Context) ([]types.Service, err
 		}
 
 		buildPath := h.configDirs[configPath]
-		
+		serviceName := h.deriveServiceName(chart, buildPath)
+
+		// Only include charts that have container images
+		image := h.extractImageFromHelm(buildPath)
+		if image == "" {
+			continue // Skip charts without images - not deployable services
+		}
+
 		service := types.Service{
-			Name:      h.deriveServiceName(chart, buildPath),
+			Name:      serviceName,
 			Network:   h.determineNetworkFromHelm(buildPath),
 			Runtime:   types.RuntimeContinuous,
-			Build:     h.determineBuildFromHelm(buildPath),
+			Build:     types.BuildFromImage,
 			BuildPath: buildPath,
+			Image:     image,
 			Configs: []types.ConfigRef{
 				{Type: "helm", Path: configPath},
 			},
-		}
-
-		// Set image if using pre-built image
-		if service.Build == types.BuildFromImage {
-			if image := h.extractImageFromHelm(buildPath); image != "" {
-				service.Image = image
-			}
 		}
 
 		services = append(services, service)
@@ -102,12 +103,12 @@ func (h *HelmSignal) determineNetworkFromHelm(chartDir string) types.Network {
 	if h.hasIngressOrLoadBalancer(chartDir) {
 		return types.NetworkPublic
 	}
-	
+
 	// Check values.yaml for ingress configuration
 	if h.hasIngressInValues(chartDir) {
 		return types.NetworkPublic
 	}
-	
+
 	// Conservative default
 	return types.NetworkPrivate
 }
@@ -117,12 +118,12 @@ func (h *HelmSignal) determineBuildFromHelm(chartDir string) types.Build {
 	if h.hasImageInValues(chartDir) {
 		return types.BuildFromImage
 	}
-	
+
 	// Check templates for image references
 	if h.hasImageInTemplates(chartDir) {
 		return types.BuildFromImage
 	}
-	
+
 	// Default to source build if no clear image refs
 	return types.BuildFromSource
 }
@@ -138,30 +139,30 @@ func (h *HelmSignal) extractImageFromHelm(chartDir string) string {
 
 func (h *HelmSignal) hasIngressOrLoadBalancer(chartDir string) bool {
 	templatesDir := h.filesystem.Join(chartDir, "templates")
-	
+
 	// Read all template files using iterator
 	for entry, err := range h.filesystem.ReadDir(templatesDir) {
 		if err != nil {
 			continue
 		}
-		
+
 		if entry.IsDir() || (!strings.HasSuffix(entry.Name(), ".yaml") && !strings.HasSuffix(entry.Name(), ".yml")) {
 			continue
 		}
-		
+
 		templatePath := h.filesystem.Join(templatesDir, entry.Name())
 		content, err := h.filesystem.ReadFile(templatePath)
 		if err != nil {
 			continue
 		}
-		
+
 		contentStr := string(content)
-		if strings.Contains(contentStr, "kind: Ingress") || 
-		   strings.Contains(contentStr, "type: LoadBalancer") {
+		if strings.Contains(contentStr, "kind: Ingress") ||
+			strings.Contains(contentStr, "type: LoadBalancer") {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -171,19 +172,19 @@ func (h *HelmSignal) hasIngressInValues(chartDir string) bool {
 	if err != nil {
 		return false
 	}
-	
+
 	var values map[string]interface{}
 	if err := yaml.Unmarshal(content, &values); err != nil {
 		return false
 	}
-	
+
 	// Check for ingress.enabled or similar patterns
 	if ingress, ok := values["ingress"].(map[string]interface{}); ok {
 		if enabled, ok := ingress["enabled"].(bool); ok && enabled {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -193,39 +194,39 @@ func (h *HelmSignal) hasImageInValues(chartDir string) bool {
 	if err != nil {
 		return false
 	}
-	
+
 	var values map[string]interface{}
 	if err := yaml.Unmarshal(content, &values); err != nil {
 		return false
 	}
-	
+
 	return h.containsImageConfig(values)
 }
 
 func (h *HelmSignal) hasImageInTemplates(chartDir string) bool {
 	templatesDir := h.filesystem.Join(chartDir, "templates")
-	
+
 	for entry, err := range h.filesystem.ReadDir(templatesDir) {
 		if err != nil {
 			continue
 		}
-		
+
 		if entry.IsDir() || (!strings.HasSuffix(entry.Name(), ".yaml") && !strings.HasSuffix(entry.Name(), ".yml")) {
 			continue
 		}
-		
+
 		templatePath := h.filesystem.Join(templatesDir, entry.Name())
 		content, err := h.filesystem.ReadFile(templatePath)
 		if err != nil {
 			continue
 		}
-		
+
 		contentStr := string(content)
 		if strings.Contains(contentStr, "image:") || strings.Contains(contentStr, ".image.") {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -243,15 +244,15 @@ func (h *HelmSignal) getAllImagesFromValues(chartDir string) []string {
 	if err != nil {
 		return nil
 	}
-	
+
 	var values map[string]interface{}
 	if err := yaml.Unmarshal(content, &values); err != nil {
 		return nil
 	}
-	
+
 	var images []string
 	imageSet := make(map[string]bool) // for deduplication
-	
+
 	// Try repository + name combination first (Pattern 3: cfssl-issuer style)
 	if imageMap, ok := values["image"].(map[string]interface{}); ok {
 		repository := h.getStringValue(imageMap, "repository")
@@ -270,12 +271,12 @@ func (h *HelmSignal) getAllImagesFromValues(chartDir string) []string {
 			}
 		}
 	}
-	
+
 	// Try common patterns for image specification
 	patterns := [][]string{
-		{"image", "repository"},  // Pattern 1: helm-state-metrics style
-		{"app", "image"},         // Pattern 2: kartotherian style  
-		{"image"},                // Simple image field
+		{"image", "repository"}, // Pattern 1: helm-state-metrics style
+		{"app", "image"},        // Pattern 2: kartotherian style
+		{"image"},               // Simple image field
 		{"deployment", "image"},
 		// Pattern 5: Multiple components (cert-manager style)
 		{"webhook", "image", "repository"},
@@ -283,7 +284,7 @@ func (h *HelmSignal) getAllImagesFromValues(chartDir string) []string {
 		{"acmesolver", "image", "repository"},
 		{"startupapicheck", "image", "repository"},
 	}
-	
+
 	for _, pattern := range patterns {
 		if image := h.getNestedValue(values, pattern); image != "" {
 			if !imageSet[image] {
@@ -292,10 +293,10 @@ func (h *HelmSignal) getAllImagesFromValues(chartDir string) []string {
 			}
 		}
 	}
-	
+
 	// Also recursively search for any field named "image" or ending in "image"
 	h.findImagesRecursive(values, "", &images, imageSet)
-	
+
 	return images
 }
 
@@ -315,7 +316,7 @@ func (h *HelmSignal) containsImageConfig(values map[string]interface{}) bool {
 
 func (h *HelmSignal) getNestedValue(values map[string]interface{}, keys []string) string {
 	current := values
-	
+
 	for i, key := range keys {
 		if i == len(keys)-1 {
 			// Last key - return the string value
@@ -324,7 +325,7 @@ func (h *HelmSignal) getNestedValue(values map[string]interface{}, keys []string
 			}
 			return ""
 		}
-		
+
 		// Navigate deeper
 		if next, ok := current[key].(map[string]interface{}); ok {
 			current = next
@@ -332,7 +333,7 @@ func (h *HelmSignal) getNestedValue(values map[string]interface{}, keys []string
 			return ""
 		}
 	}
-	
+
 	return ""
 }
 
@@ -349,21 +350,21 @@ func (h *HelmSignal) findImagesRecursive(values map[string]interface{}, path str
 		if path != "" {
 			fullPath = path + "." + key
 		}
-		
+
 		// Check if this is an image field
 		if strings.Contains(strings.ToLower(key), "image") {
 			if str, ok := value.(string); ok && str != "" {
 				// Skip common non-image fields
-				if !strings.Contains(strings.ToLower(key), "pullpolicy") && 
-				   !strings.Contains(strings.ToLower(key), "tag") &&
-				   !strings.Contains(strings.ToLower(key), "version") &&
-				   len(str) > 0 && !imageSet[str] {
+				if !strings.Contains(strings.ToLower(key), "pullpolicy") &&
+					!strings.Contains(strings.ToLower(key), "tag") &&
+					!strings.Contains(strings.ToLower(key), "version") &&
+					len(str) > 0 && !imageSet[str] {
 					*images = append(*images, str)
 					imageSet[str] = true
 				}
 			}
 		}
-		
+
 		// Recurse into nested maps
 		if nestedMap, ok := value.(map[string]interface{}); ok {
 			h.findImagesRecursive(nestedMap, fullPath, images, imageSet)
@@ -385,4 +386,3 @@ func (h *HelmSignal) parseChartYaml(configPath string) (*chart.Metadata, error) 
 
 	return &chart, nil
 }
-

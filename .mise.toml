@@ -34,7 +34,7 @@ description = "Run turnout against test fixtures for development"
 run = [
   "go build -o bin/turnout .",
   "./bin/turnout testdata/fixtures/simple-web-app",
-  "echo '---'", 
+  "echo '---'",
   "./bin/turnout testdata/fixtures/monorepo",
   "echo '---'",
   "./bin/turnout testdata/fixtures/railway-app",

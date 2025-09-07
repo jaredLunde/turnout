@@ -13,8 +13,8 @@ import (
 
 type DockerComposeSignal struct {
 	filesystem   fs.FileSystem
-	composeFiles []string              // all found compose files
-	composeDirs  map[string]string     // compose file path -> directory path
+	composeFiles []string          // all found compose files
+	composeDirs  map[string]string // compose file path -> directory path
 }
 
 func NewDockerComposeSignal(filesystem fs.FileSystem) *DockerComposeSignal {
@@ -35,11 +35,11 @@ func (d *DockerComposeSignal) ObserveEntry(ctx context.Context, rootPath string,
 		// Try common compose file names
 		composeFiles := []string{
 			"docker-compose.yml",
-			"docker-compose.yaml", 
+			"docker-compose.yaml",
 			"compose.yml",
 			"compose.yaml",
 		}
-		
+
 		for _, filename := range composeFiles {
 			if strings.EqualFold(entry.Name(), filename) {
 				composePath := d.filesystem.Join(rootPath, entry.Name())
@@ -49,7 +49,7 @@ func (d *DockerComposeSignal) ObserveEntry(ctx context.Context, rootPath string,
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -61,7 +61,7 @@ func (d *DockerComposeSignal) GenerateServices(ctx context.Context) ([]types.Ser
 	// Process the first compose file found (highest priority)
 	composePath := d.composeFiles[0]
 	workingDir := d.composeDirs[composePath]
-	
+
 	// Read compose file content through filesystem
 	content, err := d.filesystem.ReadFile(composePath)
 	if err != nil {
@@ -77,7 +77,7 @@ func (d *DockerComposeSignal) GenerateServices(ctx context.Context) ([]types.Ser
 			},
 		},
 	}
-	
+
 	project, err := loader.LoadWithContext(ctx, configDetails, func(options *loader.Options) {
 		options.SetProjectName(d.filesystem.Base(workingDir), true)
 	})
@@ -120,12 +120,12 @@ func determineNetwork(service composeTypes.ServiceConfig) types.Network {
 	if len(service.Ports) == 0 && len(service.Expose) == 0 {
 		return types.NetworkNone
 	}
-	
+
 	// Check for explicit web indicators
 	if hasWebIndicators(service) {
-		return types.NetworkPublic  
+		return types.NetworkPublic
 	}
-	
+
 	// Default: assume internal service (secure by default)
 	return types.NetworkPrivate
 }
@@ -139,12 +139,12 @@ func hasWebIndicators(service composeTypes.ServiceConfig) bool {
 		// Handle "0.0.0.0:80" format by taking last part after ":"
 		parts := strings.Split(port.Published, ":")
 		publishedPort := parts[len(parts)-1]
-		
+
 		if publishedPort == "80" || publishedPort == "443" {
 			return true
 		}
 	}
-	
+
 	return false
 }
 

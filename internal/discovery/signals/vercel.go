@@ -34,7 +34,7 @@ func (v *VercelSignal) ObserveEntry(ctx context.Context, rootPath string, entry 
 		v.configPaths = append(v.configPaths, configPath)
 		v.configDirs[configPath] = rootPath
 	}
-	
+
 	return nil
 }
 

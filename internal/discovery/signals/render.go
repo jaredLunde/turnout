@@ -34,7 +34,7 @@ func (r *RenderSignal) ObserveEntry(ctx context.Context, rootPath string, entry 
 		r.configPaths = append(r.configPaths, configPath)
 		r.configDirs[configPath] = rootPath
 	}
-	
+
 	return nil
 }
 

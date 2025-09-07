@@ -43,7 +43,7 @@ func (r *RailwaySignal) ObserveEntry(ctx context.Context, rootPath string, entry
 			r.configDirs[configPath] = rootPath
 		}
 	}
-	
+
 	return nil
 }
 

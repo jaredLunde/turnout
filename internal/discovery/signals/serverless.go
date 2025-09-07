@@ -128,7 +128,7 @@ func (s *ServerlessSignal) determineNetworkFromServerless(config *ServerlessConf
 			}
 		}
 	}
-	
+
 	// Conservative default - functions without HTTP events are likely private
 	return types.NetworkPrivate
 }
@@ -151,7 +151,7 @@ func (s *ServerlessSignal) determineRuntimeFromServerless(config *ServerlessConf
 			}
 		}
 	}
-	
+
 	// Most serverless functions are event-driven but run continuously
 	return types.RuntimeContinuous
 }
@@ -161,7 +161,7 @@ func (s *ServerlessSignal) determineBuildFromServerless(config *ServerlessConfig
 	if image := s.extractImageFromServerless(config); image != "" {
 		return types.BuildFromImage
 	}
-	
+
 	// Most serverless deployments build from source (zip packages)
 	return types.BuildFromSource
 }
@@ -180,7 +180,7 @@ func (s *ServerlessSignal) extractImageFromServerless(config *ServerlessConfig) 
 			}
 		}
 	}
-	
+
 	// No container image found
 	return ""
 }

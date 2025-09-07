@@ -35,7 +35,7 @@ func (s *SkaffoldSignal) ObserveEntry(ctx context.Context, rootPath string, entr
 		s.configPaths = append(s.configPaths, configPath)
 		s.configDirs[configPath] = rootPath
 	}
-	
+
 	return nil
 }
 
@@ -52,7 +52,7 @@ func (s *SkaffoldSignal) GenerateServices(ctx context.Context) ([]types.Service,
 		}
 
 		buildPath := s.configDirs[configPath]
-		
+
 		// Skaffold can define multiple services in one config
 		if len(config.Build.Artifacts) > 0 {
 			for _, artifact := range config.Build.Artifacts {
@@ -66,12 +66,12 @@ func (s *SkaffoldSignal) GenerateServices(ctx context.Context) ([]types.Service,
 						{Type: "skaffold", Path: configPath},
 					},
 				}
-				
+
 				// Set image if using pre-built image
 				if service.Build == types.BuildFromImage {
 					service.Image = artifact.ImageName
 				}
-				
+
 				services = append(services, service)
 			}
 		} else {
@@ -128,27 +128,27 @@ func (s *SkaffoldSignal) determineBuildFromSkaffold(artifact *latest.Artifact) t
 	if artifact.DockerArtifact != nil {
 		return types.BuildFromSource
 	}
-	
+
 	// If artifact has Jib (Java) build, it builds from source
 	if artifact.JibArtifact != nil {
 		return types.BuildFromSource
 	}
-	
+
 	// If artifact has Bazel build, it builds from source
 	if artifact.BazelArtifact != nil {
 		return types.BuildFromSource
 	}
-	
+
 	// If artifact has Ko (Go) build, it builds from source
 	if artifact.KoArtifact != nil {
 		return types.BuildFromSource
 	}
-	
+
 	// If artifact has custom build, assume it builds from source
 	if artifact.CustomArtifact != nil {
 		return types.BuildFromSource
 	}
-	
+
 	// If no build artifact specified, assume pre-built image
 	return types.BuildFromImage
 }
@@ -158,12 +158,12 @@ func (s *SkaffoldSignal) determineBuildPath(artifact *latest.Artifact, defaultPa
 	if artifact.DockerArtifact != nil && artifact.DockerArtifact.DockerfilePath != "" {
 		return s.filesystem.Dir(artifact.DockerArtifact.DockerfilePath)
 	}
-	
+
 	// If workspace is specified, use that
 	if artifact.Workspace != "" {
 		return artifact.Workspace
 	}
-	
+
 	// Default to the skaffold.yaml directory
 	return defaultPath
 }

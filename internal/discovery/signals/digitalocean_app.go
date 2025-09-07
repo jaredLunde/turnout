@@ -63,7 +63,7 @@ func (d *DigitalOceanAppSignal) GenerateServices(ctx context.Context) ([]types.S
 		}
 
 		buildPath := d.configDirs[configPath]
-		
+
 		// If config is in .do subdirectory, build from repo root (parent of .do)
 		if strings.HasSuffix(buildPath, "/.do") || buildPath == ".do" {
 			buildPath = d.filesystem.Dir(buildPath)
@@ -182,44 +182,44 @@ type DOAppSpec struct {
 }
 
 type DOAppService struct {
-	Name            string            `yaml:"name"`
-	InstanceCount   int               `yaml:"instance_count,omitempty"`
-	InstanceSizeSlug string           `yaml:"instance_size_slug,omitempty"`
-	GitHub          *DOGitHubSource   `yaml:"github,omitempty"`
-	GitLab          *DOGitLabSource   `yaml:"gitlab,omitempty"`
-	Image           *DOImageSource    `yaml:"image,omitempty"`
-	EnvironmentSlug string            `yaml:"environment_slug,omitempty"`
-	BuildCommand    string            `yaml:"build_command,omitempty"`
-	RunCommand      string            `yaml:"run_command,omitempty"`
-	HTTPPort        int               `yaml:"http_port,omitempty"`
-	Routes          []DORoute         `yaml:"routes,omitempty"`
-	HealthCheck     *DOHealthCheck    `yaml:"health_check,omitempty"`
-	EnvVars         []DOEnvVar        `yaml:"envs,omitempty"`
+	Name             string          `yaml:"name"`
+	InstanceCount    int             `yaml:"instance_count,omitempty"`
+	InstanceSizeSlug string          `yaml:"instance_size_slug,omitempty"`
+	GitHub           *DOGitHubSource `yaml:"github,omitempty"`
+	GitLab           *DOGitLabSource `yaml:"gitlab,omitempty"`
+	Image            *DOImageSource  `yaml:"image,omitempty"`
+	EnvironmentSlug  string          `yaml:"environment_slug,omitempty"`
+	BuildCommand     string          `yaml:"build_command,omitempty"`
+	RunCommand       string          `yaml:"run_command,omitempty"`
+	HTTPPort         int             `yaml:"http_port,omitempty"`
+	Routes           []DORoute       `yaml:"routes,omitempty"`
+	HealthCheck      *DOHealthCheck  `yaml:"health_check,omitempty"`
+	EnvVars          []DOEnvVar      `yaml:"envs,omitempty"`
 }
 
 type DOStaticSite struct {
-	Name            string          `yaml:"name"`
-	GitHub          *DOGitHubSource `yaml:"github,omitempty"`
-	GitLab          *DOGitLabSource `yaml:"gitlab,omitempty"`
-	BuildCommand    string          `yaml:"build_command,omitempty"`
-	OutputDir       string          `yaml:"output_dir,omitempty"`
-	IndexDocument   string          `yaml:"index_document,omitempty"`
-	ErrorDocument   string          `yaml:"error_document,omitempty"`
-	Routes          []DORoute       `yaml:"routes,omitempty"`
-	EnvVars         []DOEnvVar      `yaml:"envs,omitempty"`
+	Name          string          `yaml:"name"`
+	GitHub        *DOGitHubSource `yaml:"github,omitempty"`
+	GitLab        *DOGitLabSource `yaml:"gitlab,omitempty"`
+	BuildCommand  string          `yaml:"build_command,omitempty"`
+	OutputDir     string          `yaml:"output_dir,omitempty"`
+	IndexDocument string          `yaml:"index_document,omitempty"`
+	ErrorDocument string          `yaml:"error_document,omitempty"`
+	Routes        []DORoute       `yaml:"routes,omitempty"`
+	EnvVars       []DOEnvVar      `yaml:"envs,omitempty"`
 }
 
 type DOWorker struct {
-	Name            string          `yaml:"name"`
-	InstanceCount   int             `yaml:"instance_count,omitempty"`
-	InstanceSizeSlug string         `yaml:"instance_size_slug,omitempty"`
-	GitHub          *DOGitHubSource `yaml:"github,omitempty"`
-	GitLab          *DOGitLabSource `yaml:"gitlab,omitempty"`
-	Image           *DOImageSource  `yaml:"image,omitempty"`
-	EnvironmentSlug string          `yaml:"environment_slug,omitempty"`
-	BuildCommand    string          `yaml:"build_command,omitempty"`
-	RunCommand      string          `yaml:"run_command,omitempty"`
-	EnvVars         []DOEnvVar      `yaml:"envs,omitempty"`
+	Name             string          `yaml:"name"`
+	InstanceCount    int             `yaml:"instance_count,omitempty"`
+	InstanceSizeSlug string          `yaml:"instance_size_slug,omitempty"`
+	GitHub           *DOGitHubSource `yaml:"github,omitempty"`
+	GitLab           *DOGitLabSource `yaml:"gitlab,omitempty"`
+	Image            *DOImageSource  `yaml:"image,omitempty"`
+	EnvironmentSlug  string          `yaml:"environment_slug,omitempty"`
+	BuildCommand     string          `yaml:"build_command,omitempty"`
+	RunCommand       string          `yaml:"run_command,omitempty"`
+	EnvVars          []DOEnvVar      `yaml:"envs,omitempty"`
 }
 
 type DOJob struct {
@@ -272,17 +272,17 @@ type DOImageSource struct {
 }
 
 type DORoute struct {
-	Path                string `yaml:"path,omitempty"`
-	PreservePathPrefix  bool   `yaml:"preserve_path_prefix,omitempty"`
+	Path               string `yaml:"path,omitempty"`
+	PreservePathPrefix bool   `yaml:"preserve_path_prefix,omitempty"`
 }
 
 type DOHealthCheck struct {
-	HTTPPath             string `yaml:"http_path,omitempty"`
-	InitialDelaySeconds  int    `yaml:"initial_delay_seconds,omitempty"`
-	PeriodSeconds        int    `yaml:"period_seconds,omitempty"`
-	TimeoutSeconds       int    `yaml:"timeout_seconds,omitempty"`
-	SuccessThreshold     int    `yaml:"success_threshold,omitempty"`
-	FailureThreshold     int    `yaml:"failure_threshold,omitempty"`
+	HTTPPath            string `yaml:"http_path,omitempty"`
+	InitialDelaySeconds int    `yaml:"initial_delay_seconds,omitempty"`
+	PeriodSeconds       int    `yaml:"period_seconds,omitempty"`
+	TimeoutSeconds      int    `yaml:"timeout_seconds,omitempty"`
+	SuccessThreshold    int    `yaml:"success_threshold,omitempty"`
+	FailureThreshold    int    `yaml:"failure_threshold,omitempty"`
 }
 
 type DOEnvVar struct {

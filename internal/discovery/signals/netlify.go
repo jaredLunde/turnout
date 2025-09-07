@@ -34,7 +34,7 @@ func (n *NetlifySignal) ObserveEntry(ctx context.Context, rootPath string, entry
 		n.configPaths = append(n.configPaths, configPath)
 		n.configDirs[configPath] = rootPath
 	}
-	
+
 	return nil
 }
 
@@ -67,35 +67,35 @@ func (n *NetlifySignal) GenerateServices(ctx context.Context) ([]types.Service, 
 
 // NetlifyConfig represents the netlify.toml configuration structure
 type NetlifyConfig struct {
-	Build     *NetlifyBuild       `toml:"build,omitempty"`
-	Deploy    *NetlifyDeploy      `toml:"deploy,omitempty"`
+	Build     *NetlifyBuild            `toml:"build,omitempty"`
+	Deploy    *NetlifyDeploy           `toml:"deploy,omitempty"`
 	Context   map[string]*NetlifyBuild `toml:"context,omitempty"`
-	Headers   []NetlifyHeaders    `toml:"headers,omitempty"`
-	Redirects []NetlifyRedirects  `toml:"redirects,omitempty"`
-	Edge      *NetlifyEdge        `toml:"edge,omitempty"`
-	Template  *NetlifyTemplate    `toml:"template,omitempty"`
+	Headers   []NetlifyHeaders         `toml:"headers,omitempty"`
+	Redirects []NetlifyRedirects       `toml:"redirects,omitempty"`
+	Edge      *NetlifyEdge             `toml:"edge,omitempty"`
+	Template  *NetlifyTemplate         `toml:"template,omitempty"`
 }
 
 type NetlifyBuild struct {
-	Base            string            `toml:"base,omitempty"`
-	Command         string            `toml:"command,omitempty"`
-	Publish         string            `toml:"publish,omitempty"`
-	Functions       string            `toml:"functions,omitempty"`
-	EdgeFunctions   string            `toml:"edge_functions,omitempty"`
-	Environment     map[string]string `toml:"environment,omitempty"`
-	ProcessingSkip  bool              `toml:"processing.skip,omitempty"`
-	ProcessingCSS   map[string]bool   `toml:"processing.css,omitempty"`
-	ProcessingJS    map[string]bool   `toml:"processing.js,omitempty"`
-	ProcessingImages map[string]bool  `toml:"processing.images,omitempty"`
-	ProcessingHTML  map[string]bool   `toml:"processing.html,omitempty"`
+	Base             string            `toml:"base,omitempty"`
+	Command          string            `toml:"command,omitempty"`
+	Publish          string            `toml:"publish,omitempty"`
+	Functions        string            `toml:"functions,omitempty"`
+	EdgeFunctions    string            `toml:"edge_functions,omitempty"`
+	Environment      map[string]string `toml:"environment,omitempty"`
+	ProcessingSkip   bool              `toml:"processing.skip,omitempty"`
+	ProcessingCSS    map[string]bool   `toml:"processing.css,omitempty"`
+	ProcessingJS     map[string]bool   `toml:"processing.js,omitempty"`
+	ProcessingImages map[string]bool   `toml:"processing.images,omitempty"`
+	ProcessingHTML   map[string]bool   `toml:"processing.html,omitempty"`
 }
 
 type NetlifyDeploy struct {
-	Publish          string `toml:"publish,omitempty"`
-	Production       bool   `toml:"production,omitempty"`
-	PreviewBranch    string `toml:"preview_branch,omitempty"`
-	SplitTestBranch  string `toml:"split_test_branch,omitempty"`
-	AutoPublish      bool   `toml:"auto_publish,omitempty"`
+	Publish         string `toml:"publish,omitempty"`
+	Production      bool   `toml:"production,omitempty"`
+	PreviewBranch   string `toml:"preview_branch,omitempty"`
+	SplitTestBranch string `toml:"split_test_branch,omitempty"`
+	AutoPublish     bool   `toml:"auto_publish,omitempty"`
 }
 
 type NetlifyHeaders struct {

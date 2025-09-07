@@ -10,22 +10,22 @@ import (
 type FileSystem interface {
 	// ReadFile reads the named file and returns its contents
 	ReadFile(name string) ([]byte, error)
-	
+
 	// ReadDir reads the named directory and returns an iterator over directory entries
 	ReadDir(name string) iter.Seq2[DirEntry, error]
-	
+
 	// Walk walks the file tree rooted at root, calling fn for each file or directory
 	Walk(root string, fn WalkFunc) error
-	
+
 	// Join joins path elements into a single path
 	Join(elem ...string) string
-	
+
 	// Base returns the last element of path
 	Base(path string) string
-	
+
 	// Dir returns all but the last element of path
 	Dir(path string) string
-	
+
 	// Rel returns a relative path from basepath to targpath
 	Rel(basepath, targpath string) (string, error)
 }

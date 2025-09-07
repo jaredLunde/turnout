@@ -34,7 +34,7 @@ func (h *HerokuProcfileSignal) ObserveEntry(ctx context.Context, rootPath string
 		h.configPaths = append(h.configPaths, configPath)
 		h.configDirs[configPath] = rootPath
 	}
-	
+
 	return nil
 }
 

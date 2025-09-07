@@ -169,7 +169,7 @@ func triangulateServiceGroup(serviceList []serviceWithSignal) []types.Service {
 	// Separate high-confidence from low-confidence services
 	var highConfidenceServices []serviceWithSignal
 	var lowConfidenceServices []serviceWithSignal
-	
+
 	confidenceThreshold := 80 // Explicit deployment specs vs generic detection
 
 	for _, sws := range serviceList {
@@ -194,7 +194,7 @@ func mergeExplicitServices(explicitServices []serviceWithSignal, genericServices
 	// Collect all configs from generic services
 	var allGenericConfigs []types.ConfigRef
 	configSet := make(map[string]bool)
-	
+
 	for _, sws := range genericServices {
 		for _, config := range sws.service.Configs {
 			configKey := config.Type + ":" + config.Path
@@ -216,21 +216,21 @@ func mergeExplicitServices(explicitServices []serviceWithSignal, genericServices
 
 	// Create result services based on unique explicit services
 	var result []types.Service
-	
+
 	i := 0
 	for _, sws := range explicitByName {
 		service := sws.service
-		
+
 		// For the first explicit service, add all generic configs
 		// This represents that the generic detection found the same codebase
 		if i == 0 {
 			service.Configs = append(service.Configs, allGenericConfigs...)
 		}
-		
+
 		result = append(result, service)
 		i++
 	}
-	
+
 	return result
 }
 
@@ -238,20 +238,20 @@ func mergeExplicitServices(explicitServices []serviceWithSignal, genericServices
 func mergeGenericServices(serviceList []serviceWithSignal) []types.Service {
 	// Group by service name to merge identical services
 	nameGroups := make(map[string][]serviceWithSignal)
-	
+
 	for _, sws := range serviceList {
 		nameGroups[sws.service.Name] = append(nameGroups[sws.service.Name], sws)
 	}
-	
+
 	var result []types.Service
-	
+
 	for _, serviceGroup := range nameGroups {
 		// Use the highest confidence service as base, merge configs from all
 		var bestService types.Service
 		var allConfigs []types.ConfigRef
 		configSet := make(map[string]bool)
 		maxConfidence := 0
-		
+
 		for _, sws := range serviceGroup {
 			for _, config := range sws.service.Configs {
 				configKey := config.Type + ":" + config.Path
@@ -265,11 +265,11 @@ func mergeGenericServices(serviceList []serviceWithSignal) []types.Service {
 				bestService = sws.service
 			}
 		}
-		
+
 		bestService.Configs = allConfigs
 		result = append(result, bestService)
 	}
-	
+
 	return result
 }
 

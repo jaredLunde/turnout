@@ -11,8 +11,8 @@ import (
 
 type FlySignal struct {
 	filesystem  fs.FileSystem
-	configPaths []string              // all found fly.toml files
-	configDirs  map[string]string     // config path -> directory path
+	configPaths []string          // all found fly.toml files
+	configDirs  map[string]string // config path -> directory path
 }
 
 func NewFlySignal(filesystem fs.FileSystem) *FlySignal {
@@ -34,7 +34,7 @@ func (f *FlySignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.
 		f.configPaths = append(f.configPaths, configPath)
 		f.configDirs[configPath] = rootPath
 	}
-	
+
 	return nil
 }
 

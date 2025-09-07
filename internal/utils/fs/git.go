@@ -26,37 +26,37 @@ func NewGitFS(repoURL, ref string) (*GitFS, error) {
 		// Detect the actual default branch using git ls-remote
 		ref = detectDefaultBranch(repoURL)
 	}
-	
+
 	// Create temporary directory for cloning
 	tempDir, err := os.MkdirTemp("", "turnout-git-*")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp directory: %w", err)
 	}
-	
+
 	gfs := &GitFS{
 		repoURL:   repoURL,
 		ref:       ref,
 		localPath: tempDir,
 		localFS:   NewLocalFS(),
 	}
-	
+
 	// Clone the repository
 	if err := gfs.clone(); err != nil {
 		os.RemoveAll(tempDir) // cleanup on error
 		return nil, err
 	}
-	
+
 	return gfs, nil
 }
 
 func (gfs *GitFS) clone() error {
 	gfs.mu.Lock()
 	defer gfs.mu.Unlock()
-	
+
 	if gfs.cloned {
 		return nil
 	}
-	
+
 	// Clone with depth 1 for performance
 	cmd := exec.Command("git", "clone", "--depth", "1", "--branch", gfs.ref, gfs.repoURL, gfs.localPath)
 	if err := cmd.Run(); err != nil {
@@ -65,7 +65,7 @@ func (gfs *GitFS) clone() error {
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("failed to clone repository %s: %w", gfs.repoURL, err)
 		}
-		
+
 		// Try to checkout the specific ref
 		cmd = exec.Command("git", "checkout", gfs.ref)
 		cmd.Dir = gfs.localPath
@@ -74,7 +74,7 @@ func (gfs *GitFS) clone() error {
 			// This handles cases where ref doesn't exist
 		}
 	}
-	
+
 	gfs.cloned = true
 	return nil
 }
@@ -91,7 +91,7 @@ func (gfs *GitFS) ReadFile(name string) ([]byte, error) {
 	if err := gfs.ensureCloned(); err != nil {
 		return nil, err
 	}
-	
+
 	fullPath := gfs.localFS.Join(gfs.localPath, name)
 	return gfs.localFS.ReadFile(fullPath)
 }
@@ -102,7 +102,7 @@ func (gfs *GitFS) ReadDir(name string) iter.Seq2[DirEntry, error] {
 			yield(nil, err)
 			return
 		}
-		
+
 		fullPath := gfs.localFS.Join(gfs.localPath, name)
 		for entry, err := range gfs.localFS.ReadDir(fullPath) {
 			if !yield(entry, err) {
@@ -112,14 +112,13 @@ func (gfs *GitFS) ReadDir(name string) iter.Seq2[DirEntry, error] {
 	}
 }
 
-
 func (gfs *GitFS) Walk(root string, fn WalkFunc) error {
 	if err := gfs.ensureCloned(); err != nil {
 		return err
 	}
-	
+
 	fullRoot := gfs.localFS.Join(gfs.localPath, root)
-	
+
 	// Wrap the walk function to adjust paths
 	wrappedFn := func(path string, info FileInfo, err error) error {
 		// Convert absolute path back to relative path
@@ -133,7 +132,7 @@ func (gfs *GitFS) Walk(root string, fn WalkFunc) error {
 		}
 		return fn(path, info, err)
 	}
-	
+
 	return gfs.localFS.Walk(fullRoot, wrappedFn)
 }
 
@@ -157,7 +156,7 @@ func (gfs *GitFS) ensureCloned() error {
 	gfs.mu.RLock()
 	cloned := gfs.cloned
 	gfs.mu.RUnlock()
-	
+
 	if !cloned {
 		return gfs.clone()
 	}

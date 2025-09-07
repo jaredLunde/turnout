@@ -23,22 +23,22 @@ func NewFileSystem(uri string) (FileSystem, error) {
 		}
 		return NewLocalFS(), nil
 	}
-	
+
 	parsedURL, err := url.Parse(uri)
 	if err != nil {
 		return nil, fmt.Errorf("invalid URI %s: %w", uri, err)
 	}
-	
+
 	switch parsedURL.Scheme {
 	case "file":
 		return NewLocalFS(), nil
-		
+
 	case "github":
 		return parseGitHubURL(parsedURL)
-		
+
 	case "git":
 		return parseGitURL(parsedURL)
-		
+
 	default:
 		return nil, fmt.Errorf("unsupported scheme: %s", parsedURL.Scheme)
 	}
@@ -48,21 +48,20 @@ func NewFileSystem(uri string) (FileSystem, error) {
 func parseGitHubURL(u *url.URL) (FileSystem, error) {
 	// Format: github://owner/repo/tree/branch
 	// Or: github://owner/repo (defaults to main branch)
-	
+
 	// The host should be the owner for github:// URLs
 	owner := u.Host
-	
+
 	path := strings.Trim(u.Path, "/")
 	parts := strings.Split(path, "/")
-	
-	
+
 	if len(parts) < 1 || parts[0] == "" {
 		return nil, fmt.Errorf("invalid GitHub URL format, expected: github://owner/repo[/tree/branch]")
 	}
-	
+
 	repo := parts[0]
 	ref := ""
-	
+
 	// Check if tree/branch is specified
 	if len(parts) >= 3 && parts[1] == "tree" {
 		ref = parts[2]
@@ -72,10 +71,10 @@ func parseGitHubURL(u *url.URL) (FileSystem, error) {
 			return NewGitHubFSWithPath(owner, repo, ref, subpath, os.Getenv("GITHUB_TOKEN")), nil
 		}
 	}
-	
+
 	// Get GitHub token from environment
 	token := os.Getenv("GITHUB_TOKEN")
-	
+
 	return NewGitHubFS(owner, repo, ref, token), nil
 }
 
@@ -84,9 +83,9 @@ func parseGitURL(u *url.URL) (FileSystem, error) {
 	// Format: git://github.com/owner/repo
 	// Or: git://owner/repo (shorthand, assumes github.com)
 	// Or: git://github.com/owner/repo#branch
-	
+
 	var gitURL string
-	
+
 	// Check if this is a GitHub shorthand format (git://owner/repo)
 	if u.Host != "" && u.Host != "github.com" && strings.Count(u.Path, "/") == 1 {
 		// This is likely git://owner/repo format where host is owner and path is /repo
@@ -110,17 +109,17 @@ func parseGitURL(u *url.URL) (FileSystem, error) {
 		// Other git hosting services
 		gitURL = fmt.Sprintf("https://%s%s", u.Host, u.Path)
 	}
-	
+
 	ref := ""
 	if u.Fragment != "" {
 		ref = u.Fragment
 	}
-	
+
 	gitFS, err := NewGitFS(gitURL, ref)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create git filesystem: %w", err)
 	}
-	
+
 	return gitFS, nil
 }
 
@@ -130,24 +129,24 @@ func GetBasePath(uri string) string {
 	if !strings.Contains(uri, "://") {
 		return uri
 	}
-	
+
 	parsedURL, err := url.Parse(uri)
 	if err != nil {
 		return uri
 	}
-	
+
 	switch parsedURL.Scheme {
 	case "file":
 		return parsedURL.Path
-		
+
 	case "github":
 		// For GitHub URLs, the filesystem handles subpaths internally
 		return "."
-		
+
 	case "git":
 		// For git URLs, the base path is "."
 		return "."
-		
+
 	default:
 		return uri
 	}
