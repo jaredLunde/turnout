@@ -273,6 +273,9 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 	if _, found := deps["kafkajs"]; found {
 		return &PackageFramework{Name: "Kafka Consumer", ConfigPath: packagePath, Network: types.NetworkNone, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
+	if _, found := deps["amqplib"]; found {
+		return &PackageFramework{Name: "RabbitMQ Consumer", ConfigPath: packagePath, Network: types.NetworkNone, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
 	// Generic queue libraries
 	workerLibs := []string{"bull", "bee-queue", "agenda", "kue", "node-resque"}
 	for _, lib := range workerLibs {
@@ -347,6 +350,9 @@ func (p *PackageSignal) analyzeRequirements(requirementsPath string) *PackageFra
 	}
 	if strings.Contains(content, "kafka-python") || strings.Contains(content, "confluent-kafka") {
 		return &PackageFramework{Name: "Kafka Consumer", ConfigPath: requirementsPath, Network: types.NetworkNone, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if strings.Contains(content, "pika") {
+		return &PackageFramework{Name: "RabbitMQ Consumer", ConfigPath: requirementsPath, Network: types.NetworkNone, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
 	if strings.Contains(content, "ray") && strings.Contains(content, "ray[serve]") {
 		return &PackageFramework{Name: "Ray Worker", ConfigPath: requirementsPath, Network: types.NetworkNone, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
@@ -448,6 +454,9 @@ func (p *PackageSignal) analyzeGoMod(goModPath string) *PackageFramework {
 	}
 	if isDirect("github.com/Shopify/sarama") || isDirect("github.com/confluentinc/confluent-kafka-go") {
 		return &PackageFramework{Name: "Kafka Consumer", ConfigPath: goModPath, Network: types.NetworkNone, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if isDirect("github.com/streadway/amqp") || isDirect("github.com/rabbitmq/amqp091-go") {
+		return &PackageFramework{Name: "RabbitMQ Consumer", ConfigPath: goModPath, Network: types.NetworkNone, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
 	// Generic queue libraries
 	workerLibs := []string{"github.com/hibiken/asynq", "github.com/RichardKnights/machinery", "github.com/gocraft/work"}
