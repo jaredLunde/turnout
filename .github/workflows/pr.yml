@@ -1,0 +1,34 @@
+name: Pull request
+on:
+  pull_request:
+    branches:
+      - main
+jobs:
+  vet:
+    name: Vet
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.head_ref }}-vet
+      cancel-in-progress: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Setup Mise
+        uses: jdx/mise-action@v2
+      - name: Setup Golang caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-golang-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-golang-
+      - name: Install dependencies
+        run: mise run setup
+      - name: Check formatting
+        run: mise run "format:check"
+      - name: Lint
+        run: mise run lint
