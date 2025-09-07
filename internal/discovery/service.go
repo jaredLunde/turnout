@@ -121,15 +121,14 @@ func (sd *ServiceDiscovery) Discover(ctx context.Context, rootPath string) ([]ty
 }
 
 func triangulateServices(results []signalResult) []types.Service {
-	// Build service mapping by build path + name (keep distinct services)
-	serviceMap := make(map[string][]serviceWithSignal)
+	// Group services by build path first
+	buildPathGroups := make(map[string][]serviceWithSignal)
 
-	// Group services by their build path + name combination
+	// Collect all services grouped by BuildPath
 	for _, result := range results {
 		for _, service := range result.services {
 			if service.BuildPath != "" {
-				key := service.BuildPath + ":" + service.Name
-				serviceMap[key] = append(serviceMap[key], serviceWithSignal{
+				buildPathGroups[service.BuildPath] = append(buildPathGroups[service.BuildPath], serviceWithSignal{
 					service:    service,
 					confidence: result.confidence,
 				})
@@ -138,37 +137,11 @@ func triangulateServices(results []signalResult) []types.Service {
 	}
 
 	var mergedServices []types.Service
-	processed := make(map[string]bool)
 
-	// Merge services with the same build path + name
-	for key, serviceList := range serviceMap {
-		if processed[key] {
-			continue
-		}
-
-		// Use the highest confidence service as base, merge configs from all
-		var bestService types.Service
-		var allConfigs []types.ConfigRef
-		configSet := make(map[string]bool) // for deduplication
-		maxConfidence := 0
-
-		for _, sws := range serviceList {
-			for _, config := range sws.service.Configs {
-				configKey := config.Type + ":" + config.Path
-				if !configSet[configKey] {
-					allConfigs = append(allConfigs, config)
-					configSet[configKey] = true
-				}
-			}
-			if sws.confidence > maxConfidence {
-				maxConfidence = sws.confidence
-				bestService = sws.service
-			}
-		}
-
-		bestService.Configs = allConfigs
-		mergedServices = append(mergedServices, bestService)
-		processed[key] = true
+	// Process each BuildPath group
+	for _, serviceList := range buildPathGroups {
+		merged := triangulateServiceGroup(serviceList)
+		mergedServices = append(mergedServices, merged...)
 	}
 
 	// Add services without build paths (like pre-built images)
@@ -181,6 +154,123 @@ func triangulateServices(results []signalResult) []types.Service {
 	}
 
 	return mergedServices
+}
+
+// triangulateServiceGroup processes services within a single BuildPath group
+func triangulateServiceGroup(serviceList []serviceWithSignal) []types.Service {
+	// Find the highest confidence level
+	maxConfidence := 0
+	for _, sws := range serviceList {
+		if sws.confidence > maxConfidence {
+			maxConfidence = sws.confidence
+		}
+	}
+
+	// Separate high-confidence from low-confidence services
+	var highConfidenceServices []serviceWithSignal
+	var lowConfidenceServices []serviceWithSignal
+	
+	confidenceThreshold := 80 // Explicit deployment specs vs generic detection
+
+	for _, sws := range serviceList {
+		if sws.confidence >= confidenceThreshold && sws.confidence == maxConfidence {
+			highConfidenceServices = append(highConfidenceServices, sws)
+		} else {
+			lowConfidenceServices = append(lowConfidenceServices, sws)
+		}
+	}
+
+	// If we have high-confidence explicit services, use those as base
+	if len(highConfidenceServices) > 0 {
+		return mergeExplicitServices(highConfidenceServices, lowConfidenceServices)
+	}
+
+	// Otherwise, fall back to merging generic services
+	return mergeGenericServices(serviceList)
+}
+
+// mergeExplicitServices uses high-confidence services as base and merges configs from low-confidence ones
+func mergeExplicitServices(explicitServices []serviceWithSignal, genericServices []serviceWithSignal) []types.Service {
+	// Collect all configs from generic services
+	var allGenericConfigs []types.ConfigRef
+	configSet := make(map[string]bool)
+	
+	for _, sws := range genericServices {
+		for _, config := range sws.service.Configs {
+			configKey := config.Type + ":" + config.Path
+			if !configSet[configKey] {
+				allGenericConfigs = append(allGenericConfigs, config)
+				configSet[configKey] = true
+			}
+		}
+	}
+
+	// Group explicit services by name to avoid duplicates
+	explicitByName := make(map[string]serviceWithSignal)
+	for _, sws := range explicitServices {
+		// Keep the first occurrence of each service name
+		if _, exists := explicitByName[sws.service.Name]; !exists {
+			explicitByName[sws.service.Name] = sws
+		}
+	}
+
+	// Create result services based on unique explicit services
+	var result []types.Service
+	
+	i := 0
+	for _, sws := range explicitByName {
+		service := sws.service
+		
+		// For the first explicit service, add all generic configs
+		// This represents that the generic detection found the same codebase
+		if i == 0 {
+			service.Configs = append(service.Configs, allGenericConfigs...)
+		}
+		
+		result = append(result, service)
+		i++
+	}
+	
+	return result
+}
+
+// mergeGenericServices handles the case where we only have generic/low-confidence services
+func mergeGenericServices(serviceList []serviceWithSignal) []types.Service {
+	// Group by service name to merge identical services
+	nameGroups := make(map[string][]serviceWithSignal)
+	
+	for _, sws := range serviceList {
+		nameGroups[sws.service.Name] = append(nameGroups[sws.service.Name], sws)
+	}
+	
+	var result []types.Service
+	
+	for _, serviceGroup := range nameGroups {
+		// Use the highest confidence service as base, merge configs from all
+		var bestService types.Service
+		var allConfigs []types.ConfigRef
+		configSet := make(map[string]bool)
+		maxConfidence := 0
+		
+		for _, sws := range serviceGroup {
+			for _, config := range sws.service.Configs {
+				configKey := config.Type + ":" + config.Path
+				if !configSet[configKey] {
+					allConfigs = append(allConfigs, config)
+					configSet[configKey] = true
+				}
+			}
+			if sws.confidence > maxConfidence {
+				maxConfidence = sws.confidence
+				bestService = sws.service
+			}
+		}
+		
+		bestService.Configs = allConfigs
+		result = append(result, bestService)
+	}
+	
+	return result
 }
 
 var excludePatterns = []string{

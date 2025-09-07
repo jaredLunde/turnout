@@ -19,7 +19,9 @@
       "Bash(git stash:*)",
       "Bash(dprint fmt:*)",
       "Bash(./turnout *)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Read(//private/**)",
+      "Read(//tmp/**)"
     ],
     "deny": [],
     "ask": []

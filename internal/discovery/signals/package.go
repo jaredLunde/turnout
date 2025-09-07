@@ -265,6 +265,14 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 		return &PackageFramework{Name: "Angular", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
 
+	// High-confidence separate workers (lowest priority - only when no web framework detected)
+	workerLibs := []string{"bull", "bee-queue", "agenda", "kue", "node-resque"}
+	for _, lib := range workerLibs {
+		if _, found := deps[lib]; found {
+			return &PackageFramework{Name: "Node.js Worker", ConfigPath: packagePath, Network: types.NetworkNone, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+		}
+	}
+
 	return nil
 }
 
@@ -322,6 +330,14 @@ func (p *PackageSignal) analyzeRequirements(requirementsPath string) *PackageFra
 	// Generic Python web-related packages
 	if strings.Contains(content, "requests") || strings.Contains(content, "urllib3") || strings.Contains(content, "httpx") {
 		return &PackageFramework{Name: "Python Web Service", ConfigPath: requirementsPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+
+	// High-confidence separate workers (lowest priority - only when no web framework detected)
+	workerLibs := []string{"celery", "rq", "dramatiq", "huey"}
+	for _, lib := range workerLibs {
+		if strings.Contains(content, lib) {
+			return &PackageFramework{Name: "Python Worker", ConfigPath: requirementsPath, Network: types.NetworkNone, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+		}
 	}
 
 	return nil
@@ -404,6 +420,14 @@ func (p *PackageSignal) analyzeGoMod(goModPath string) *PackageFramework {
 	}
 	if isDirect("github.com/kataras/iris") {
 		return &PackageFramework{Name: "Iris", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+
+	// High-confidence separate workers (lowest priority - only when no web framework detected)
+	workerLibs := []string{"github.com/hibiken/asynq", "github.com/RichardKnights/machinery", "github.com/gocraft/work"}
+	for _, lib := range workerLibs {
+		if isDirect(lib) {
+			return &PackageFramework{Name: "Go Worker", ConfigPath: goModPath, Network: types.NetworkNone, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+		}
 	}
 
 	// Generic Go service
@@ -529,6 +553,14 @@ func (p *PackageSignal) analyzeGemfile(gemfilePath string) *PackageFramework {
 	}
 	if strings.Contains(content, "grape") {
 		return &PackageFramework{Name: "Grape API", ConfigPath: gemfilePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+
+	// High-confidence separate workers (lowest priority - only when no web framework detected)
+	workerLibs := []string{"sidekiq", "resque", "delayed_job", "good_job"}
+	for _, lib := range workerLibs {
+		if strings.Contains(content, lib) {
+			return &PackageFramework{Name: "Ruby Worker", ConfigPath: gemfilePath, Network: types.NetworkNone, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+		}
 	}
 
 	// Generic Ruby service
