@@ -14,9 +14,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/google/go-github/v74/github"
-	"golang.org/x/oauth2"
 )
 
 // GitHubFS implements FileSystem using downloaded GitHub repository archive
@@ -30,7 +27,6 @@ type GitHubFS struct {
 	token      string
 	initErr    error
 
-	client    *github.Client
 	zipReader *zip.ReadCloser
 	pathIndex map[string][]string
 
@@ -45,29 +41,12 @@ func NewGitHubFS(owner, repo, ref string, token string) *GitHubFS {
 // NewGitHubFSWithPath creates a new GitHubFS instance with a base path
 func NewGitHubFSWithPath(owner, repo, ref, basePath string, token string) *GitHubFS {
 	ctx := context.Background()
-	var client *github.Client
-
-	if token != "" {
-		ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
-		tc := oauth2.NewClient(ctx, ts)
-		client = github.NewClient(tc)
-	} else {
-		client = github.NewClient(nil)
-	}
 
 	if ref == "" {
-		// Detect the actual default branch
-		repo, _, err := client.Repositories.Get(ctx, owner, repo)
-		if err != nil {
-			// Fallback to "main" if we can't detect
-			ref = "main"
-		} else {
-			ref = repo.GetDefaultBranch()
-		}
+		ref = detectDefaultBranch(fmt.Sprintf("https://github.com/%s/%s", owner, repo))
 	}
 
 	return &GitHubFS{
-		client:    client,
 		ctx:       ctx,
 		owner:     owner,
 		repo:      repo,
