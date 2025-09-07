@@ -23,8 +23,22 @@ var databasePatterns = []string{
 	"postgres_url", "mysql_url", "mongodb_url", "redis_url",
 }
 
+var systemEnvVars = []string{
+	"path", "home", "user", "shell", "pwd", "lang", "term", "tmpdir",
+	"ps1", "ps2", "ifs", "mail", "mailpath", "optind", "editor",
+	"pager", "browser", "display", "xauthority", "ssh_auth_sock",
+	"oldpwd", "shlvl", "hostname", "logname", "uid", "gid",
+}
+
 func ClassifyEnvVar(name, value string) (EnvType, bool) {
 	nameLower := strings.ToLower(name)
+
+	// Skip system variables
+	for _, sysVar := range systemEnvVars {
+		if nameLower == sysVar {
+			return EnvTypeUnknown, false // Skip entirely
+		}
+	}
 
 	// Check if value looks generated first
 	if looksGenerated(value) {
