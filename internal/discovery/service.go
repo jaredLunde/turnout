@@ -9,6 +9,7 @@ import (
 	"github.com/railwayapp/turnout/internal/discovery/signals"
 	"github.com/railwayapp/turnout/internal/discovery/types"
 	"github.com/railwayapp/turnout/internal/filesystems"
+	"golang.org/x/sync/errgroup"
 )
 
 type ServiceDiscovery struct {
@@ -92,22 +93,37 @@ func (sd *ServiceDiscovery) Discover(ctx context.Context, rootPath string) ([]ty
 	}
 
 	// NOW generate services from all signals with their full accumulated context
-	var results []signalResult
+	resultsChan := make(chan signalResult, len(sd.signals))
+	var wg errgroup.Group
+
 	for _, signal := range sd.signals {
-		services, err := signal.GenerateServices(ctx)
-		if err != nil {
-			if isCriticalError(err) {
-				lastCriticalError = err
+		wg.Go(func() error {
+			services, err := signal.GenerateServices(ctx)
+			if err != nil {
+				if isCriticalError(err) {
+					return err
+				}
+				return nil
 			}
-			continue
-		}
-		if len(services) > 0 {
-			results = append(results, signalResult{
-				services:   services,
-				confidence: signal.Confidence(),
-				signal:     signal,
-			})
-		}
+			if len(services) > 0 {
+				resultsChan <- signalResult{
+					services:   services,
+					confidence: signal.Confidence(),
+					signal:     signal,
+				}
+			}
+			return nil
+		})
+	}
+
+	if err := wg.Wait(); err != nil {
+		lastCriticalError = err
+	}
+	close(resultsChan)
+
+	var results []signalResult
+	for result := range resultsChan {
+		results = append(results, result)
 	}
 
 	// If we found no services but had critical errors, surface the error
@@ -347,14 +363,21 @@ func (sd *ServiceDiscovery) walkRepoIterative(ctx context.Context, filesystem fi
 				continue
 			}
 
-			// Let all signals observe this entry - they build up global repo state
+			// Let all signals observe this entry in parallel - they build up global repo state
+			var wg errgroup.Group
+
 			for _, signal := range sd.signals {
-				if err := signal.ObserveEntry(ctx, current.path, entry); err != nil {
-					if isCriticalError(err) {
-						*lastCriticalError = err
+				wg.Go(func() error {
+					if err := signal.ObserveEntry(ctx, current.path, entry); err != nil {
+						if isCriticalError(err) {
+							return err
+						}
 					}
-					// Continue with other signals even if one fails
-				}
+					return nil
+				})
+			}
+			if err := wg.Wait(); err != nil {
+				*lastCriticalError = err
 			}
 
 			// Add subdirectories to stack for processing
