@@ -67,6 +67,10 @@ func (d *DockerfileExtractor) parseEnvNode(node *parser.Node, dockerfilePath str
 					varName := parts[0]
 					value := parts[1]
 
+					if types.ShouldIgnore(varName) {
+						continue
+					}
+					
 					envType, sensitive := types.ClassifyEnvVar(varName, value)
 					results = append(results, types.EnvResult{
 						VarName:    varName,

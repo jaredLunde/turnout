@@ -30,15 +30,18 @@ var systemEnvVars = []string{
 	"oldpwd", "shlvl", "hostname", "logname", "uid", "gid",
 }
 
-func ClassifyEnvVar(name, value string) (EnvType, bool) {
+func ShouldIgnore(name string) bool {
 	nameLower := strings.ToLower(name)
-
-	// Skip system variables
 	for _, sysVar := range systemEnvVars {
 		if nameLower == sysVar {
-			return EnvTypeUnknown, false // Skip entirely
+			return true
 		}
 	}
+	return false
+}
+
+func ClassifyEnvVar(name, value string) (EnvType, bool) {
+	nameLower := strings.ToLower(name)
 
 	// Check if value looks generated first
 	if looksGenerated(value) {

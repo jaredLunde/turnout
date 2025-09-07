@@ -36,6 +36,10 @@ func (d *DotEnvExtractor) Extract(ctx context.Context, filename string, content 
 	confidence := d.getFileConfidence(filepath.Base(filename))
 
 	for key, value := range env {
+		if types.ShouldIgnore(key) {
+			continue
+		}
+		
 		envType, sensitive := types.ClassifyEnvVar(key, value)
 		results = append(results, types.EnvResult{
 			VarName:    key,
