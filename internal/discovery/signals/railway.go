@@ -7,16 +7,16 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/railwayapp/turnout/internal/discovery/types"
-	"github.com/railwayapp/turnout/internal/utils/fs"
+	"github.com/railwayapp/turnout/internal/filesystems"
 )
 
 type RailwaySignal struct {
-	filesystem  fs.FileSystem
+	filesystem  filesystems.FileSystem
 	configPaths []string          // all found railway config files
 	configDirs  map[string]string // config path -> directory path
 }
 
-func NewRailwaySignal(filesystem fs.FileSystem) *RailwaySignal {
+func NewRailwaySignal(filesystem filesystems.FileSystem) *RailwaySignal {
 	return &RailwaySignal{filesystem: filesystem}
 }
 
@@ -29,7 +29,7 @@ func (r *RailwaySignal) Reset() {
 	r.configDirs = make(map[string]string)
 }
 
-func (r *RailwaySignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+func (r *RailwaySignal) ObserveEntry(ctx context.Context, rootPath string, entry filesystems.DirEntry) error {
 	if !entry.IsDir() {
 		// Check for railway.json first (higher precedence), then railway.toml
 		if strings.EqualFold(entry.Name(), "railway.json") {

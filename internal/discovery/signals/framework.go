@@ -5,16 +5,16 @@ import (
 	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
-	"github.com/railwayapp/turnout/internal/utils/fs"
+	"github.com/railwayapp/turnout/internal/filesystems"
 )
 
 type FrameworkSignal struct {
-	filesystem fs.FileSystem
+	filesystem filesystems.FileSystem
 	frameworks []Framework       // detected frameworks
 	configDirs map[string]string // config path -> directory path
 }
 
-func NewFrameworkSignal(filesystem fs.FileSystem) *FrameworkSignal {
+func NewFrameworkSignal(filesystem filesystems.FileSystem) *FrameworkSignal {
 	return &FrameworkSignal{filesystem: filesystem}
 }
 
@@ -27,7 +27,7 @@ func (f *FrameworkSignal) Reset() {
 	f.configDirs = make(map[string]string)
 }
 
-func (f *FrameworkSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+func (f *FrameworkSignal) ObserveEntry(ctx context.Context, rootPath string, entry filesystems.DirEntry) error {
 	if entry.IsDir() {
 		return nil
 	}

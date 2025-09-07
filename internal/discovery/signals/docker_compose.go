@@ -8,16 +8,16 @@ import (
 	"github.com/compose-spec/compose-go/v2/loader"
 	composeTypes "github.com/compose-spec/compose-go/v2/types"
 	"github.com/railwayapp/turnout/internal/discovery/types"
-	"github.com/railwayapp/turnout/internal/utils/fs"
+	"github.com/railwayapp/turnout/internal/filesystems"
 )
 
 type DockerComposeSignal struct {
-	filesystem   fs.FileSystem
+	filesystem   filesystems.FileSystem
 	composeFiles []string          // all found compose files
 	composeDirs  map[string]string // compose file path -> directory path
 }
 
-func NewDockerComposeSignal(filesystem fs.FileSystem) *DockerComposeSignal {
+func NewDockerComposeSignal(filesystem filesystems.FileSystem) *DockerComposeSignal {
 	return &DockerComposeSignal{filesystem: filesystem}
 }
 
@@ -45,7 +45,7 @@ var composeFiles = []string{
 	"compose.production.yaml",
 }
 
-func (d *DockerComposeSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+func (d *DockerComposeSignal) ObserveEntry(ctx context.Context, rootPath string, entry filesystems.DirEntry) error {
 	if !entry.IsDir() {
 		for _, filename := range composeFiles {
 			if strings.EqualFold(entry.Name(), filename) {

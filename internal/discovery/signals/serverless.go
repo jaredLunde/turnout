@@ -5,17 +5,17 @@ import (
 	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
-	"github.com/railwayapp/turnout/internal/utils/fs"
+	"github.com/railwayapp/turnout/internal/filesystems"
 	"gopkg.in/yaml.v3"
 )
 
 type ServerlessSignal struct {
-	filesystem  fs.FileSystem
+	filesystem  filesystems.FileSystem
 	configPaths []string          // all found serverless.yml files
 	configDirs  map[string]string // config path -> directory path
 }
 
-func NewServerlessSignal(filesystem fs.FileSystem) *ServerlessSignal {
+func NewServerlessSignal(filesystem filesystems.FileSystem) *ServerlessSignal {
 	return &ServerlessSignal{filesystem: filesystem}
 }
 
@@ -28,7 +28,7 @@ func (s *ServerlessSignal) Reset() {
 	s.configDirs = make(map[string]string)
 }
 
-func (s *ServerlessSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+func (s *ServerlessSignal) ObserveEntry(ctx context.Context, rootPath string, entry filesystems.DirEntry) error {
 	if !entry.IsDir() && matchesServerlessConfig(entry.Name()) {
 		configPath := s.filesystem.Join(rootPath, entry.Name())
 		s.configPaths = append(s.configPaths, configPath)

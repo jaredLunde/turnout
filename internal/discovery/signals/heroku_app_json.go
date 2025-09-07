@@ -6,16 +6,16 @@ import (
 	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
-	"github.com/railwayapp/turnout/internal/utils/fs"
+	"github.com/railwayapp/turnout/internal/filesystems"
 )
 
 type HerokuAppJsonSignal struct {
-	filesystem  fs.FileSystem
+	filesystem  filesystems.FileSystem
 	configPaths []string          // all found app.json files
 	configDirs  map[string]string // config path -> directory path
 }
 
-func NewHerokuAppJsonSignal(filesystem fs.FileSystem) *HerokuAppJsonSignal {
+func NewHerokuAppJsonSignal(filesystem filesystems.FileSystem) *HerokuAppJsonSignal {
 	return &HerokuAppJsonSignal{filesystem: filesystem}
 }
 
@@ -28,7 +28,7 @@ func (h *HerokuAppJsonSignal) Reset() {
 	h.configDirs = make(map[string]string)
 }
 
-func (h *HerokuAppJsonSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+func (h *HerokuAppJsonSignal) ObserveEntry(ctx context.Context, rootPath string, entry filesystems.DirEntry) error {
 	if !entry.IsDir() && strings.EqualFold(entry.Name(), "app.json") {
 		configPath := h.filesystem.Join(rootPath, entry.Name())
 		h.configPaths = append(h.configPaths, configPath)

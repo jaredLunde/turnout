@@ -5,17 +5,17 @@ import (
 	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
-	"github.com/railwayapp/turnout/internal/utils/fs"
+	"github.com/railwayapp/turnout/internal/filesystems"
 	"gopkg.in/yaml.v3"
 )
 
 type DigitalOceanAppSignal struct {
-	filesystem  fs.FileSystem
+	filesystem  filesystems.FileSystem
 	configPaths []string          // all found DigitalOcean app spec files
 	configDirs  map[string]string // config path -> directory path
 }
 
-func NewDigitalOceanAppSignal(filesystem fs.FileSystem) *DigitalOceanAppSignal {
+func NewDigitalOceanAppSignal(filesystem filesystems.FileSystem) *DigitalOceanAppSignal {
 	return &DigitalOceanAppSignal{filesystem: filesystem}
 }
 
@@ -28,7 +28,7 @@ func (d *DigitalOceanAppSignal) Reset() {
 	d.configDirs = make(map[string]string)
 }
 
-func (d *DigitalOceanAppSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+func (d *DigitalOceanAppSignal) ObserveEntry(ctx context.Context, rootPath string, entry filesystems.DirEntry) error {
 	if entry.IsDir() && entry.Name() == ".do" {
 		// Check for .do/app.yaml
 		appPath := d.filesystem.Join(rootPath, ".do", "app.yaml")

@@ -5,17 +5,17 @@ import (
 	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
-	"github.com/railwayapp/turnout/internal/utils/fs"
+	"github.com/railwayapp/turnout/internal/filesystems"
 	"gopkg.in/yaml.v3"
 )
 
 type RenderSignal struct {
-	filesystem  fs.FileSystem
+	filesystem  filesystems.FileSystem
 	configPaths []string          // all found render.yaml files
 	configDirs  map[string]string // config path -> directory path
 }
 
-func NewRenderSignal(filesystem fs.FileSystem) *RenderSignal {
+func NewRenderSignal(filesystem filesystems.FileSystem) *RenderSignal {
 	return &RenderSignal{filesystem: filesystem}
 }
 
@@ -28,7 +28,7 @@ func (r *RenderSignal) Reset() {
 	r.configDirs = make(map[string]string)
 }
 
-func (r *RenderSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+func (r *RenderSignal) ObserveEntry(ctx context.Context, rootPath string, entry filesystems.DirEntry) error {
 	if !entry.IsDir() && strings.EqualFold(entry.Name(), "render.yaml") {
 		configPath := r.filesystem.Join(rootPath, entry.Name())
 		r.configPaths = append(r.configPaths, configPath)

@@ -6,16 +6,16 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/railwayapp/turnout/internal/discovery/types"
-	"github.com/railwayapp/turnout/internal/utils/fs"
+	"github.com/railwayapp/turnout/internal/filesystems"
 )
 
 type NetlifySignal struct {
-	filesystem  fs.FileSystem
+	filesystem  filesystems.FileSystem
 	configPaths []string          // all found netlify.toml files
 	configDirs  map[string]string // config path -> directory path
 }
 
-func NewNetlifySignal(filesystem fs.FileSystem) *NetlifySignal {
+func NewNetlifySignal(filesystem filesystems.FileSystem) *NetlifySignal {
 	return &NetlifySignal{filesystem: filesystem}
 }
 
@@ -28,7 +28,7 @@ func (n *NetlifySignal) Reset() {
 	n.configDirs = make(map[string]string)
 }
 
-func (n *NetlifySignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+func (n *NetlifySignal) ObserveEntry(ctx context.Context, rootPath string, entry filesystems.DirEntry) error {
 	if !entry.IsDir() && strings.EqualFold(entry.Name(), "netlify.toml") {
 		configPath := n.filesystem.Join(rootPath, entry.Name())
 		n.configPaths = append(n.configPaths, configPath)

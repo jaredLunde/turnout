@@ -6,16 +6,16 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/railwayapp/turnout/internal/discovery/types"
-	"github.com/railwayapp/turnout/internal/utils/fs"
+	"github.com/railwayapp/turnout/internal/filesystems"
 )
 
 type FlySignal struct {
-	filesystem  fs.FileSystem
+	filesystem  filesystems.FileSystem
 	configPaths []string          // all found fly.toml files
 	configDirs  map[string]string // config path -> directory path
 }
 
-func NewFlySignal(filesystem fs.FileSystem) *FlySignal {
+func NewFlySignal(filesystem filesystems.FileSystem) *FlySignal {
 	return &FlySignal{filesystem: filesystem}
 }
 
@@ -28,7 +28,7 @@ func (f *FlySignal) Reset() {
 	f.configDirs = make(map[string]string)
 }
 
-func (f *FlySignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+func (f *FlySignal) ObserveEntry(ctx context.Context, rootPath string, entry filesystems.DirEntry) error {
 	if !entry.IsDir() && strings.EqualFold(entry.Name(), "fly.toml") {
 		configPath := f.filesystem.Join(rootPath, entry.Name())
 		f.configPaths = append(f.configPaths, configPath)

@@ -8,17 +8,17 @@ import (
 
 	"github.com/railwayapp/turnout/internal/discovery/signals"
 	"github.com/railwayapp/turnout/internal/discovery/types"
-	"github.com/railwayapp/turnout/internal/utils/fs"
+	"github.com/railwayapp/turnout/internal/filesystems"
 )
 
 type ServiceDiscovery struct {
 	signals    []ServiceSignal
-	filesystem fs.FileSystem
+	filesystem filesystems.FileSystem
 }
 
 type ServiceSignal interface {
 	// Called for each file/directory entry encountered during directory walk
-	ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error
+	ObserveEntry(ctx context.Context, rootPath string, entry filesystems.DirEntry) error
 
 	// Called after all entries in a directory have been observed to generate services
 	GenerateServices(ctx context.Context) ([]types.Service, error)
@@ -30,7 +30,7 @@ type ServiceSignal interface {
 	Confidence() int // 0-100, for conflict resolution
 }
 
-func NewServiceDiscovery(filesystem fs.FileSystem, signals ...ServiceSignal) *ServiceDiscovery {
+func NewServiceDiscovery(filesystem filesystems.FileSystem, signals ...ServiceSignal) *ServiceDiscovery {
 	if len(signals) == 0 {
 		signals = DefaultSignals(filesystem)
 	}
@@ -41,7 +41,7 @@ func NewServiceDiscovery(filesystem fs.FileSystem, signals ...ServiceSignal) *Se
 	}
 }
 
-func DefaultSignals(filesystem fs.FileSystem) []ServiceSignal {
+func DefaultSignals(filesystem filesystems.FileSystem) []ServiceSignal {
 	return []ServiceSignal{
 		signals.NewDockerComposeSignal(filesystem),
 		signals.NewDockerfileSignal(filesystem),
@@ -76,7 +76,7 @@ func (sd *ServiceDiscovery) Discover(ctx context.Context, rootPath string) ([]ty
 	filesystem := sd.filesystem
 
 	// Get the base path for the filesystem
-	basePath := fs.GetBasePath(rootPath)
+	basePath := filesystems.GetBasePath(rootPath)
 
 	// Reset all signals ONCE at the start
 	for _, signal := range sd.signals {
@@ -318,7 +318,7 @@ type walkItem struct {
 }
 
 // walkRepoIterative performs iterative directory traversal using a stack
-func (sd *ServiceDiscovery) walkRepoIterative(ctx context.Context, filesystem fs.FileSystem, rootPath string, maxDepth int, lastCriticalError *error) error {
+func (sd *ServiceDiscovery) walkRepoIterative(ctx context.Context, filesystem filesystems.FileSystem, rootPath string, maxDepth int, lastCriticalError *error) error {
 	// Use a stack instead of recursion
 	stack := []walkItem{{path: rootPath, depth: 0}}
 

@@ -7,16 +7,16 @@ import (
 	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
-	"github.com/railwayapp/turnout/internal/utils/fs"
+	"github.com/railwayapp/turnout/internal/filesystems"
 )
 
 type PackageSignal struct {
-	filesystem   fs.FileSystem
+	filesystem   filesystems.FileSystem
 	packagePaths []string          // all found package files
 	configDirs   map[string]string // config path -> directory path
 }
 
-func NewPackageSignal(filesystem fs.FileSystem) *PackageSignal {
+func NewPackageSignal(filesystem filesystems.FileSystem) *PackageSignal {
 	return &PackageSignal{filesystem: filesystem}
 }
 
@@ -36,7 +36,7 @@ var packageFiles = []string{
 	"project.clj", "deps.edn", "build.sbt",
 }
 
-func (p *PackageSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+func (p *PackageSignal) ObserveEntry(ctx context.Context, rootPath string, entry filesystems.DirEntry) error {
 	if !entry.IsDir() {
 		// Check for all package manager files
 

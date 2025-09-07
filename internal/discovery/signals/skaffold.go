@@ -6,17 +6,17 @@ import (
 
 	"github.com/GoogleContainerTools/skaffold/pkg/skaffold/schema/latest"
 	"github.com/railwayapp/turnout/internal/discovery/types"
-	"github.com/railwayapp/turnout/internal/utils/fs"
+	"github.com/railwayapp/turnout/internal/filesystems"
 	"gopkg.in/yaml.v3"
 )
 
 type SkaffoldSignal struct {
-	filesystem  fs.FileSystem
+	filesystem  filesystems.FileSystem
 	configPaths []string          // all found skaffold.yaml files
 	configDirs  map[string]string // config path -> directory path
 }
 
-func NewSkaffoldSignal(filesystem fs.FileSystem) *SkaffoldSignal {
+func NewSkaffoldSignal(filesystem filesystems.FileSystem) *SkaffoldSignal {
 	return &SkaffoldSignal{filesystem: filesystem}
 }
 
@@ -29,7 +29,7 @@ func (s *SkaffoldSignal) Reset() {
 	s.configDirs = make(map[string]string)
 }
 
-func (s *SkaffoldSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+func (s *SkaffoldSignal) ObserveEntry(ctx context.Context, rootPath string, entry filesystems.DirEntry) error {
 	if !entry.IsDir() && strings.EqualFold(entry.Name(), "skaffold.yaml") {
 		configPath := s.filesystem.Join(rootPath, entry.Name())
 		s.configPaths = append(s.configPaths, configPath)

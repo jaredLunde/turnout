@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/railwayapp/turnout/internal/discovery"
-	"github.com/railwayapp/turnout/internal/utils/fs"
+	"github.com/railwayapp/turnout/internal/filesystems"
 	"github.com/spf13/cobra"
 )
 
@@ -42,13 +42,13 @@ turnout conversion process.`,
 
 func runServiceDiscovery(sourcePath string) error {
 	// Create filesystem from the sourcePath (supports file://, github://, git://)
-	filesystem, err := fs.NewFileSystem(sourcePath)
+	filesystem, err := filesystems.NewFileSystem(sourcePath)
 	if err != nil {
 		return fmt.Errorf("failed to create filesystem: %w", err)
 	}
 
 	// Clean up git filesystem if needed
-	if gitFS, ok := filesystem.(*fs.GitFS); ok {
+	if gitFS, ok := filesystem.(*filesystems.GitFS); ok {
 		defer gitFS.Cleanup()
 	}
 

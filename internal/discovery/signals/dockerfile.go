@@ -6,16 +6,16 @@ import (
 	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
-	"github.com/railwayapp/turnout/internal/utils/fs"
+	"github.com/railwayapp/turnout/internal/filesystems"
 )
 
 type DockerfileSignal struct {
-	filesystem     fs.FileSystem
+	filesystem     filesystems.FileSystem
 	dockerfiles    []string          // all found Dockerfiles
 	dockerfileDirs map[string]string // dockerfile path -> directory path
 }
 
-func NewDockerfileSignal(filesystem fs.FileSystem) *DockerfileSignal {
+func NewDockerfileSignal(filesystem filesystems.FileSystem) *DockerfileSignal {
 	return &DockerfileSignal{filesystem: filesystem}
 }
 
@@ -28,7 +28,7 @@ func (d *DockerfileSignal) Reset() {
 	d.dockerfileDirs = make(map[string]string)
 }
 
-func (d *DockerfileSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+func (d *DockerfileSignal) ObserveEntry(ctx context.Context, rootPath string, entry filesystems.DirEntry) error {
 	if !entry.IsDir() {
 		name := entry.Name()
 		// Match standard Dockerfile

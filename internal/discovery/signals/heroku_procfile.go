@@ -6,16 +6,16 @@ import (
 	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
-	"github.com/railwayapp/turnout/internal/utils/fs"
+	"github.com/railwayapp/turnout/internal/filesystems"
 )
 
 type HerokuProcfileSignal struct {
-	filesystem  fs.FileSystem
+	filesystem  filesystems.FileSystem
 	configPaths []string          // all found Procfile files
 	configDirs  map[string]string // config path -> directory path
 }
 
-func NewHerokuProcfileSignal(filesystem fs.FileSystem) *HerokuProcfileSignal {
+func NewHerokuProcfileSignal(filesystem filesystems.FileSystem) *HerokuProcfileSignal {
 	return &HerokuProcfileSignal{filesystem: filesystem}
 }
 
@@ -28,7 +28,7 @@ func (h *HerokuProcfileSignal) Reset() {
 	h.configDirs = make(map[string]string)
 }
 
-func (h *HerokuProcfileSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+func (h *HerokuProcfileSignal) ObserveEntry(ctx context.Context, rootPath string, entry filesystems.DirEntry) error {
 	if !entry.IsDir() && strings.EqualFold(entry.Name(), "Procfile") {
 		configPath := h.filesystem.Join(rootPath, entry.Name())
 		h.configPaths = append(h.configPaths, configPath)

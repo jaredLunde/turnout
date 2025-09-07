@@ -6,16 +6,16 @@ import (
 	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
-	"github.com/railwayapp/turnout/internal/utils/fs"
+	"github.com/railwayapp/turnout/internal/filesystems"
 )
 
 type VercelSignal struct {
-	filesystem  fs.FileSystem
+	filesystem  filesystems.FileSystem
 	configPaths []string          // all found vercel.json files
 	configDirs  map[string]string // config path -> directory path
 }
 
-func NewVercelSignal(filesystem fs.FileSystem) *VercelSignal {
+func NewVercelSignal(filesystem filesystems.FileSystem) *VercelSignal {
 	return &VercelSignal{filesystem: filesystem}
 }
 
@@ -28,7 +28,7 @@ func (v *VercelSignal) Reset() {
 	v.configDirs = make(map[string]string)
 }
 
-func (v *VercelSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
+func (v *VercelSignal) ObserveEntry(ctx context.Context, rootPath string, entry filesystems.DirEntry) error {
 	if !entry.IsDir() && strings.EqualFold(entry.Name(), "vercel.json") {
 		configPath := v.filesystem.Join(rootPath, entry.Name())
 		v.configPaths = append(v.configPaths, configPath)
