@@ -10,9 +10,9 @@ import (
 )
 
 type DockerfileSignal struct {
-	filesystem    fs.FileSystem
-	dockerfiles   []string              // all found Dockerfiles
-	dockerfileDirs map[string]string    // dockerfile path -> directory path
+	filesystem     fs.FileSystem
+	dockerfiles    []string          // all found Dockerfiles
+	dockerfileDirs map[string]string // dockerfile path -> directory path
 }
 
 func NewDockerfileSignal(filesystem fs.FileSystem) *DockerfileSignal {
@@ -20,7 +20,7 @@ func NewDockerfileSignal(filesystem fs.FileSystem) *DockerfileSignal {
 }
 
 func (d *DockerfileSignal) Confidence() int {
-	return 70 // Moderate confidence - just indicates buildable service, not deployment config
+	return 50 // Poor confidence - just indicates buildable service, not deployment config
 }
 
 func (d *DockerfileSignal) Reset() {
@@ -34,7 +34,7 @@ func (d *DockerfileSignal) ObserveEntry(ctx context.Context, rootPath string, en
 		d.dockerfiles = append(d.dockerfiles, dockerfilePath)
 		d.dockerfileDirs[dockerfilePath] = rootPath
 	}
-	
+
 	return nil
 }
 

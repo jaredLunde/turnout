@@ -3,6 +3,7 @@ package discovery
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/signals"
@@ -47,10 +48,14 @@ func DefaultSignals(filesystem fs.FileSystem) []ServiceSignal {
 		signals.NewRailwaySignal(filesystem),
 		signals.NewFlySignal(filesystem),
 		signals.NewRenderSignal(filesystem),
+		signals.NewDigitalOceanAppSignal(filesystem),
 		signals.NewVercelSignal(filesystem),
 		signals.NewNetlifySignal(filesystem),
 		signals.NewHerokuProcfileSignal(filesystem),
 		signals.NewHerokuAppJsonSignal(filesystem),
+		signals.NewHelmSignal(filesystem),
+		signals.NewSkaffoldSignal(filesystem),
+		signals.NewServerlessSignal(filesystem),
 		signals.NewFrameworkSignal(filesystem),
 		signals.NewPackageSignal(filesystem),
 	}
@@ -177,7 +182,7 @@ func triangulateServices(results []signalResult) []types.Service {
 	return mergedServices
 }
 
-var ignorePatterns = []string{
+var excludePatterns = []string{
 	// Dependencies
 	"node_modules", "vendor", "bower_components",
 	"venv", "env",
@@ -198,16 +203,18 @@ var ignorePatterns = []string{
 	"man", "examples", "test", "tests",
 }
 
+var includePatterns = []string{".do", ".vercel"}
+
 func (sd *ServiceDiscovery) shouldIgnoreDirectory(dirName string) bool {
 	// Check exact matches
-	for _, pattern := range ignorePatterns {
+	for _, pattern := range excludePatterns {
 		if strings.EqualFold(dirName, pattern) {
 			return true
 		}
 	}
 
 	// Check prefixes
-	if strings.HasPrefix(dirName, "_") || (strings.HasPrefix(dirName, ".") && len(dirName) > 1) {
+	if strings.HasPrefix(dirName, "_") || (strings.HasPrefix(dirName, ".") && len(dirName) > 1) && !slices.Contains(includePatterns, dirName) {
 		// Allow "." (current dir) but ignore other dotfiles
 		return true
 	}

@@ -3,6 +3,7 @@ package signals
 import (
 	"context"
 	"encoding/json"
+	"maps"
 	"strings"
 
 	"github.com/railwayapp/turnout/internal/discovery/types"
@@ -32,6 +33,7 @@ var packageFiles = []string{
 	"package.json", "requirements.txt", "pyproject.toml", "go.mod",
 	"Cargo.toml", "composer.json", "Gemfile", "pom.xml",
 	"build.gradle", "build.gradle.kts", "Package.swift", "mix.exs",
+	"project.clj", "deps.edn", "build.sbt",
 }
 
 func (p *PackageSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
@@ -124,6 +126,12 @@ func (p *PackageSignal) detectFrameworksFromPackages() []PackageFramework {
 			fw = p.analyzeSwiftPackage(packagePath)
 		case "mix.exs":
 			fw = p.analyzeMix(packagePath)
+		case "project.clj":
+			fw = p.analyzeProjectClj(packagePath)
+		case "deps.edn":
+			fw = p.analyzeDepsEdn(packagePath)
+		case "build.sbt":
+			fw = p.analyzeBuildSbt(packagePath)
 		default:
 			// Check for .csproj files
 			if strings.HasSuffix(strings.ToLower(filename), ".csproj") {
@@ -157,6 +165,9 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 
 	deps := pkg.Dependencies
 	devDeps := pkg.DevDependencies
+	allDeps := map[string]string{}
+	maps.Copy(allDeps, deps)
+	maps.Copy(allDeps, devDeps)
 
 	// Frontend meta-frameworks (highest priority)
 	if _, found := deps["next"]; found {
@@ -168,7 +179,7 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 	if _, found := deps["@remix-run/react"]; found {
 		return &PackageFramework{Name: "Remix", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := deps["@sveltejs/kit"]; found {
+	if _, found := allDeps["@sveltejs/kit"]; found {
 		return &PackageFramework{Name: "SvelteKit", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
 	if _, found := deps["astro"]; found {
@@ -177,7 +188,7 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 	if _, found := deps["solid-start"]; found {
 		return &PackageFramework{Name: "SolidStart", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := deps["@tanstack/start"]; found {
+	if _, found := allDeps["@tanstack/start"]; found {
 		return &PackageFramework{Name: "TanStack Start", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
 	if _, found := deps["@tanstack/router"]; found {
@@ -200,10 +211,13 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 	if _, found := deps["@docusaurus/core"]; found {
 		return &PackageFramework{Name: "Docusaurus", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := deps["vuepress"]; found {
+	if _, found := allDeps["vuepress"]; found {
 		return &PackageFramework{Name: "VuePress", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if _, found := deps["@gridsome/cli"]; found {
+	if _, found := allDeps["vitepress"]; found {
+		return &PackageFramework{Name: "Vitepress", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if _, found := allDeps["@gridsome/cli"]; found {
 		return &PackageFramework{Name: "Gridsome", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
 
@@ -247,25 +261,8 @@ func (p *PackageSignal) analyzePackageJson(packagePath string) *PackageFramework
 	if _, found := deps["@keystone-6/core"]; found {
 		return &PackageFramework{Name: "Keystone.js", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-
-	// Frontend frameworks/libraries
-	if _, found := deps["react-dom"]; found {
-		return &PackageFramework{Name: "React App", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
-	}
-	if _, found := deps["vue"]; found {
-		return &PackageFramework{Name: "Vue.js App", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
-	}
-	if _, found := deps["svelte"]; found {
-		return &PackageFramework{Name: "Svelte App", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
-	}
-	if _, found := deps["solid-js"]; found {
-		return &PackageFramework{Name: "Solid.js App", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
-	}
 	if _, found := deps["@angular/core"]; found {
 		return &PackageFramework{Name: "Angular", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
-	}
-	if _, found := devDeps["vitepress"]; found {
-		return &PackageFramework{Name: "Vitepress", ConfigPath: packagePath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
 
 	return nil
@@ -360,41 +357,52 @@ func (p *PackageSignal) analyzeGoMod(goModPath string) *PackageFramework {
 
 	content := string(data)
 
-	// Web frameworks
-	if strings.Contains(content, "github.com/gin-gonic/gin") {
+	// Helper function to check if a dependency is direct (not indirect)
+	isDirect := func(pkg string) bool {
+		lines := strings.Split(content, "\n")
+		for _, line := range lines {
+			if strings.Contains(line, pkg) && !strings.Contains(line, "// indirect") {
+				return true
+			}
+		}
+		return false
+	}
+
+	// Web frameworks - only check direct dependencies
+	if isDirect("github.com/gin-gonic/gin") {
 		return &PackageFramework{Name: "Gin", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if strings.Contains(content, "github.com/go-chi/chi") {
+	if isDirect("github.com/go-chi/chi") {
 		return &PackageFramework{Name: "Chi", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if strings.Contains(content, "github.com/gofiber/fiber") {
+	if isDirect("github.com/gofiber/fiber") {
 		return &PackageFramework{Name: "Fiber", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if strings.Contains(content, "goa.design/goa") {
+	if isDirect("goa.design/goa") {
 		return &PackageFramework{Name: "Goa", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if strings.Contains(content, "github.com/gorilla/mux") {
+	if isDirect("github.com/gorilla/mux") {
 		return &PackageFramework{Name: "Gorilla Mux", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if strings.Contains(content, "github.com/gorilla/websocket") {
+	if isDirect("github.com/gorilla/websocket") {
 		return &PackageFramework{Name: "Gorilla Websocket", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if strings.Contains(content, "github.com/gorilla/sessions") {
+	if isDirect("github.com/gorilla/sessions") {
 		return &PackageFramework{Name: "Gorilla Sessions", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if strings.Contains(content, "github.com/gorilla/csrf") {
+	if isDirect("github.com/gorilla/csrf") {
 		return &PackageFramework{Name: "Gorilla CSRF", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if strings.Contains(content, "github.com/labstack/echo") {
+	if isDirect("github.com/labstack/echo") {
 		return &PackageFramework{Name: "Echo", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if strings.Contains(content, "github.com/revel/revel") {
+	if isDirect("github.com/revel/revel") {
 		return &PackageFramework{Name: "Revel", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if strings.Contains(content, "github.com/beego/beego") {
+	if isDirect("github.com/beego/beego") {
 		return &PackageFramework{Name: "Beego", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
-	if strings.Contains(content, "github.com/kataras/iris") {
+	if isDirect("github.com/kataras/iris") {
 		return &PackageFramework{Name: "Iris", ConfigPath: goModPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
 
@@ -648,10 +656,73 @@ func (p *PackageSignal) analyzeMix(mixPath string) *PackageFramework {
 	if strings.Contains(content, "phoenix") {
 		return &PackageFramework{Name: "Phoenix", ConfigPath: mixPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
+	if strings.Contains(content, ":distillery") {
+		return &PackageFramework{Name: "Phoenix Distillery", ConfigPath: mixPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
 	if strings.Contains(content, "plug") {
 		return &PackageFramework{Name: "Plug", ConfigPath: mixPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	}
 
 	// Generic Elixir service
+	return nil
+}
+
+func (p *PackageSignal) analyzeProjectClj(projectPath string) *PackageFramework {
+	data, err := p.filesystem.ReadFile(projectPath)
+	if err != nil {
+		return nil
+	}
+
+	content := string(data)
+
+	// Clojure web frameworks
+	if strings.Contains(content, "luminus/lein-template") || strings.Contains(content, "ring/ring-core") {
+		return &PackageFramework{Name: "Luminus", ConfigPath: projectPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if strings.Contains(content, "compojure") {
+		return &PackageFramework{Name: "Compojure", ConfigPath: projectPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+
+	// Generic Clojure service
+	return nil
+}
+
+func (p *PackageSignal) analyzeDepsEdn(depsPath string) *PackageFramework {
+	data, err := p.filesystem.ReadFile(depsPath)
+	if err != nil {
+		return nil
+	}
+
+	content := string(data)
+
+	// Clojure web frameworks
+	if strings.Contains(content, "ring/ring-core") || strings.Contains(content, "luminus") {
+		return &PackageFramework{Name: "Luminus", ConfigPath: depsPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if strings.Contains(content, "compojure/compojure") {
+		return &PackageFramework{Name: "Compojure", ConfigPath: depsPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+
+	// Generic Clojure service
+	return nil
+}
+
+func (p *PackageSignal) analyzeBuildSbt(sbtPath string) *PackageFramework {
+	data, err := p.filesystem.ReadFile(sbtPath)
+	if err != nil {
+		return nil
+	}
+
+	content := string(data)
+
+	// Scala/Java frameworks
+	if strings.Contains(content, "com.typesafe.play") || strings.Contains(content, "play-server") {
+		return &PackageFramework{Name: "Play Framework", ConfigPath: sbtPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if strings.Contains(content, "akka-http") {
+		return &PackageFramework{Name: "Akka HTTP", ConfigPath: sbtPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+
+	// Generic Scala service
 	return nil
 }

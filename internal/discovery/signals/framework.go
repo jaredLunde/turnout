@@ -68,12 +68,12 @@ func (f *FrameworkSignal) ObserveEntry(ctx context.Context, rootPath string, ent
 		framework = Framework{Name: "NestJS", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	case name == "artisan":
 		framework = Framework{Name: "Laravel", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
-	case matchesAny(name, "hugo.toml", "hugo.yaml", "config.toml", "config.yaml"):
+	case matchesAny(name, "hugo.toml", "hugo.yaml"):
 		framework = Framework{Name: "Hugo", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
-	case matchesAny(name, "_config.yml", "_config.yaml"):
-		framework = Framework{Name: "Jekyll", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	case matchesAny(name, ".eleventy.js", "eleventy.config.js", ".eleventy.config.js"):
 		framework = Framework{Name: "Eleventy", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	case name == "Caddyfile":
+		framework = Framework{Name: "Caddy", ConfigPath: fullPath, Network: types.NetworkPublic, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
 	default:
 		return nil
 	}
