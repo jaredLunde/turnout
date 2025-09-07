@@ -53,7 +53,6 @@ func DefaultSignals(filesystem fs.FileSystem) []ServiceSignal {
 		signals.NewNetlifySignal(filesystem),
 		signals.NewHerokuProcfileSignal(filesystem),
 		signals.NewHerokuAppJsonSignal(filesystem),
-		signals.NewHelmSignal(filesystem),
 		signals.NewSkaffoldSignal(filesystem),
 		signals.NewServerlessSignal(filesystem),
 		signals.NewFrameworkSignal(filesystem),
