@@ -442,6 +442,14 @@ func (p *PackageSignal) analyzeGoMod(goModPath string) *PackageFramework {
 	}
 
 	// High-confidence separate workers (lowest priority - only when no web framework detected)
+	// Infrastructure services
+	if isDirect("go.temporal.io/sdk") {
+		return &PackageFramework{Name: "Temporal Worker", ConfigPath: goModPath, Network: types.NetworkNone, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	if isDirect("github.com/Shopify/sarama") || isDirect("github.com/confluentinc/confluent-kafka-go") {
+		return &PackageFramework{Name: "Kafka Consumer", ConfigPath: goModPath, Network: types.NetworkNone, Runtime: types.RuntimeContinuous, Build: types.BuildFromSource}
+	}
+	// Generic queue libraries
 	workerLibs := []string{"github.com/hibiken/asynq", "github.com/RichardKnights/machinery", "github.com/gocraft/work"}
 	for _, lib := range workerLibs {
 		if isDirect(lib) {
