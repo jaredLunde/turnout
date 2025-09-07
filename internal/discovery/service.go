@@ -121,14 +121,15 @@ func (sd *ServiceDiscovery) Discover(ctx context.Context, rootPath string) ([]ty
 }
 
 func triangulateServices(results []signalResult) []types.Service {
-	// Build service mapping by build path (directory-based merging)
-	buildPathMap := make(map[string][]serviceWithSignal)
+	// Build service mapping by build path + name (keep distinct services)
+	serviceMap := make(map[string][]serviceWithSignal)
 
-	// Group services by their build path
+	// Group services by their build path + name combination
 	for _, result := range results {
 		for _, service := range result.services {
 			if service.BuildPath != "" {
-				buildPathMap[service.BuildPath] = append(buildPathMap[service.BuildPath], serviceWithSignal{
+				key := service.BuildPath + ":" + service.Name
+				serviceMap[key] = append(serviceMap[key], serviceWithSignal{
 					service:    service,
 					confidence: result.confidence,
 				})
@@ -139,9 +140,9 @@ func triangulateServices(results []signalResult) []types.Service {
 	var mergedServices []types.Service
 	processed := make(map[string]bool)
 
-	// Merge services with the same build path
-	for buildPath, serviceList := range buildPathMap {
-		if processed[buildPath] {
+	// Merge services with the same build path + name
+	for key, serviceList := range serviceMap {
+		if processed[key] {
 			continue
 		}
 
@@ -167,7 +168,7 @@ func triangulateServices(results []signalResult) []types.Service {
 
 		bestService.Configs = allConfigs
 		mergedServices = append(mergedServices, bestService)
-		processed[buildPath] = true
+		processed[key] = true
 	}
 
 	// Add services without build paths (like pre-built images)

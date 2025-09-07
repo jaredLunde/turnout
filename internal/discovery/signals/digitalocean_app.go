@@ -34,6 +34,7 @@ func (d *DigitalOceanAppSignal) ObserveEntry(ctx context.Context, rootPath strin
 		appPath := d.filesystem.Join(rootPath, ".do", "app.yaml")
 		if _, err := d.filesystem.ReadFile(appPath); err == nil {
 			d.configPaths = append(d.configPaths, appPath)
+			// BuildPath should be the directory containing .do (repo root)
 			d.configDirs[appPath] = rootPath
 		}
 	} else if !entry.IsDir() {
@@ -62,6 +63,14 @@ func (d *DigitalOceanAppSignal) GenerateServices(ctx context.Context) ([]types.S
 		}
 
 		buildPath := d.configDirs[configPath]
+		
+		// If config is in .do subdirectory, build from repo root (parent of .do)
+		if strings.HasSuffix(buildPath, "/.do") || buildPath == ".do" {
+			buildPath = d.filesystem.Dir(buildPath)
+			if buildPath == "" || buildPath == "." {
+				buildPath = "."
+			}
+		}
 
 		// Add HTTP services
 		for _, appService := range config.Services {
