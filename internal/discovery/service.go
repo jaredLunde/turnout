@@ -279,9 +279,10 @@ var excludePatterns = []string{
 	"target", "deps", "_build",
 
 	// Build outputs
-	"dist", "build", "out", ".next", ".nuxt", ".output",
-	"public", "static", "assets", ".vercel", ".netlify",
-	"bin", "obj", "Debug", "Release", "x64", "x86",
+	"dist", "build", "out",
+	"public", "static", "assets",
+	"bin", "obj", "Debug", "Release",
+	"x64", "x86",
 
 	// OS
 	"Thumbs.db", "Desktop.ini",
