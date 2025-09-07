@@ -29,10 +29,20 @@ func (d *DockerfileSignal) Reset() {
 }
 
 func (d *DockerfileSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
-	if !entry.IsDir() && strings.EqualFold(entry.Name(), "Dockerfile") {
-		dockerfilePath := d.filesystem.Join(rootPath, entry.Name())
-		d.dockerfiles = append(d.dockerfiles, dockerfilePath)
-		d.dockerfileDirs[dockerfilePath] = rootPath
+	if !entry.IsDir() {
+		name := entry.Name()
+		// Match standard Dockerfile
+		if strings.EqualFold(name, "Dockerfile") {
+			dockerfilePath := d.filesystem.Join(rootPath, name)
+			d.dockerfiles = append(d.dockerfiles, dockerfilePath)
+			d.dockerfileDirs[dockerfilePath] = rootPath
+		}
+		// Match named Dockerfiles: Dockerfile.*, *.Dockerfile
+		if strings.HasPrefix(strings.ToLower(name), "dockerfile.") || strings.HasSuffix(strings.ToLower(name), ".dockerfile") {
+			dockerfilePath := d.filesystem.Join(rootPath, name)
+			d.dockerfiles = append(d.dockerfiles, dockerfilePath)
+			d.dockerfileDirs[dockerfilePath] = rootPath
+		}
 	}
 
 	return nil

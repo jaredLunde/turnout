@@ -153,17 +153,29 @@ func (s *SkaffoldSignal) determineBuildFromSkaffold(artifact *latest.Artifact) t
 	return types.BuildFromImage
 }
 
-func (s *SkaffoldSignal) determineBuildPath(artifact *latest.Artifact, defaultPath string) string {
-	// If Docker build, use the context path
-	if artifact.DockerArtifact != nil && artifact.DockerArtifact.DockerfilePath != "" {
-		return s.filesystem.Dir(artifact.DockerArtifact.DockerfilePath)
-	}
-
-	// If workspace is specified, use that
+func (s *SkaffoldSignal) determineBuildPath(artifact *latest.Artifact, configDir string) string {
+	// Use the artifact's workspace (context) - this is the primary build directory
 	if artifact.Workspace != "" {
-		return artifact.Workspace
+		return s.resolveRelativePath(artifact.Workspace, configDir)
 	}
 
-	// Default to the skaffold.yaml directory
-	return defaultPath
+	// Fall back to dockerfile directory if no explicit workspace
+	if artifact.DockerArtifact != nil && artifact.DockerArtifact.DockerfilePath != "" {
+		return s.resolveRelativePath(s.filesystem.Dir(artifact.DockerArtifact.DockerfilePath), configDir)
+	}
+
+	// Default to the skaffold.yaml directory only as last resort
+	return configDir
+}
+
+func (s *SkaffoldSignal) resolveRelativePath(path, configDir string) string {
+	if strings.HasPrefix(path, "./") {
+		// Remove leading "./" and join with config directory
+		return s.filesystem.Join(configDir, path[2:])
+	}
+	if path == "." {
+		return configDir
+	}
+	// If not relative, assume it's already resolved
+	return path
 }

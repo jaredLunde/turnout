@@ -30,16 +30,23 @@ func (d *DockerComposeSignal) Reset() {
 	d.composeDirs = make(map[string]string)
 }
 
+var composeFiles = []string{
+	"docker-compose.yml",
+	"docker-compose.yaml",
+	"compose.yml",
+	"compose.yaml",
+	"docker-compose.prod.yml",
+	"docker-compose.prod.yaml",
+	"docker-compose.production.yml",
+	"docker-compose.production.yaml",
+	"compose.prod.yml",
+	"compose.prod.yaml",
+	"compose.production.yml",
+	"compose.production.yaml",
+}
+
 func (d *DockerComposeSignal) ObserveEntry(ctx context.Context, rootPath string, entry fs.DirEntry) error {
 	if !entry.IsDir() {
-		// Try common compose file names
-		composeFiles := []string{
-			"docker-compose.yml",
-			"docker-compose.yaml",
-			"compose.yml",
-			"compose.yaml",
-		}
-
 		for _, filename := range composeFiles {
 			if strings.EqualFold(entry.Name(), filename) {
 				composePath := d.filesystem.Join(rootPath, entry.Name())
