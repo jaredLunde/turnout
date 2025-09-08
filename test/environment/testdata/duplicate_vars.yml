@@ -1,0 +1,7 @@
+services:
+  web:
+    image: nginx
+    environment:
+      PORT: 3000
+      API_KEY: compose-file-key
+      DATABASE_URL: postgres://localhost/db

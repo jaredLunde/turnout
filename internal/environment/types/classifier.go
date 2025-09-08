@@ -24,6 +24,7 @@ var databasePatterns = []string{
 }
 
 var systemEnvVars = []string{
+	// Core system variables that are never app config
 	"path", "home", "user", "shell", "pwd", "lang", "term", "tmpdir",
 	"ps1", "ps2", "ifs", "mail", "mailpath", "optind", "editor",
 	"pager", "browser", "display", "xauthority", "ssh_auth_sock",

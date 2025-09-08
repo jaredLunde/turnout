@@ -1,0 +1,9 @@
+services:
+  web:
+    image: nginx
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://user:pass@localhost/db
+      JWT_SECRET: super-secret-key
+      DEBUG: true
+      API_KEY:

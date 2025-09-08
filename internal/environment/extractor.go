@@ -20,6 +20,8 @@ func NewExtractor(filesystem filesystems.FileSystem) *Extractor {
 			extractors.NewDockerComposeExtractor(),
 			extractors.NewDockerfileExtractor(),
 			extractors.NewDotEnvExtractor(),
+			extractors.NewStructuredConfigExtractor(),
+			extractors.NewLibraryCallExtractor(),
 		},
 	}
 }
