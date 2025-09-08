@@ -24,7 +24,7 @@ func TestDockerComposeExtractor(t *testing.T) {
 	}
 
 	expectedVars := []string{"PORT", "DATABASE_URL", "JWT_SECRET", "DEBUG", "API_KEY"}
-	
+
 	if len(results) != len(expectedVars) {
 		t.Fatalf("Expected %d vars, got %d", len(expectedVars), len(results))
 	}
@@ -59,7 +59,7 @@ func TestDockerfileExtractor(t *testing.T) {
 	}
 
 	expectedVars := []string{"PORT", "DATABASE_URL", "JWT_SECRET", "DEBUG"}
-	
+
 	if len(results) != len(expectedVars) {
 		t.Fatalf("Expected %d vars, got %d", len(expectedVars), len(results))
 	}
@@ -86,7 +86,7 @@ func TestDotEnvExtractor(t *testing.T) {
 	}
 
 	expectedVars := []string{"API_KEY", "REDIS_URL", "FEATURE_FLAG", "PORT"}
-	
+
 	if len(results) != len(expectedVars) {
 		t.Fatalf("Expected %d vars, got %d", len(expectedVars), len(results))
 	}
@@ -113,7 +113,7 @@ func TestLibraryCallExtractor(t *testing.T) {
 	}
 
 	expectedVars := []string{"PORT", "DATABASE_URL", "API_KEY", "NODE_ENV"}
-	
+
 	if len(results) != len(expectedVars) {
 		t.Fatalf("Expected %d vars, got %d", len(expectedVars), len(results))
 	}
@@ -143,12 +143,12 @@ func TestStructuredConfig_ZodSchema(t *testing.T) {
 	}
 
 	expectedVars := []string{"NODE_ENV", "HOSTNAME", "PORT", "RAILWAY_PUBLIC_DOMAIN", "DASHBOARD_URL"}
-	
+
 	t.Logf("Found %d variables:", len(results))
 	for _, result := range results {
 		t.Logf("  %s", result.VarName)
 	}
-	
+
 	if len(results) != len(expectedVars) {
 		t.Fatalf("Expected %d vars, got %d", len(expectedVars), len(results))
 	}
@@ -168,13 +168,13 @@ func TestStructuredConfig_ZodSchema(t *testing.T) {
 
 func TestDeduplication(t *testing.T) {
 	ctx := context.Background()
-	
+
 	// Read test data that has overlapping variables
 	envContent, err := os.ReadFile("testdata/duplicate_vars.env")
 	if err != nil {
 		t.Fatalf("Failed to read env fixture: %v", err)
 	}
-	
+
 	composeContent, err := os.ReadFile("testdata/duplicate_vars.yml")
 	if err != nil {
 		t.Fatalf("Failed to read compose fixture: %v", err)
@@ -198,7 +198,7 @@ func TestDeduplication(t *testing.T) {
 	// Collect all results and deduplicate based on confidence
 	allResults := append(envResults, composeResults...)
 	deduplicated := make(map[string]types.EnvResult)
-	
+
 	for _, result := range allResults {
 		existing, exists := deduplicated[result.VarName]
 		if !exists || result.Confidence > existing.Confidence {

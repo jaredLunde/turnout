@@ -56,7 +56,7 @@ func (d *DockerComposeExtractor) Extract(ctx context.Context, filename string, c
 			if types.ShouldIgnore(key) {
 				continue
 			}
-			
+
 			envType, sensitive := types.ClassifyEnvVar(key, val)
 			results = append(results, types.EnvResult{
 				VarName:    key,

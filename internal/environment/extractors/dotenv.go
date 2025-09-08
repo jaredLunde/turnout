@@ -39,7 +39,7 @@ func (d *DotEnvExtractor) Extract(ctx context.Context, filename string, content 
 		if types.ShouldIgnore(key) {
 			continue
 		}
-		
+
 		envType, sensitive := types.ClassifyEnvVar(key, value)
 		results = append(results, types.EnvResult{
 			VarName:    key,

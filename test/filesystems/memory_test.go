@@ -1,8 +1,8 @@
 package filesystems
 
 import (
-	"testing"
 	"github.com/railwayapp/turnout/internal/filesystems"
+	"testing"
 )
 
 func TestMemoryFS_AddFile(t *testing.T) {
@@ -36,7 +36,7 @@ func TestMemoryFS_AddFile_CreatesParentDirs(t *testing.T) {
 
 func TestMemoryFS_ReadFile_NotFound(t *testing.T) {
 	mfs := filesystems.NewMemoryFS()
-	
+
 	_, err := mfs.ReadFile("nonexistent.txt")
 	if err == nil {
 		t.Fatal("expected error for nonexistent file")
@@ -190,36 +190,36 @@ func TestMemoryFS_DirEntry_Info(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		
+
 		if entry.Name() == "test.txt" {
 			info, err := entry.Info()
 			if err != nil {
 				t.Fatalf("unexpected error getting file info: %v", err)
 			}
-			
+
 			if info.Name() != "test.txt" {
 				t.Errorf("expected name 'test.txt', got '%s'", info.Name())
 			}
-			
+
 			if info.Size() != 11 {
 				t.Errorf("expected size 11, got %d", info.Size())
 			}
-			
+
 			if info.IsDir() {
 				t.Error("expected file to not be directory")
 			}
 		}
-		
+
 		if entry.Name() == "testdir" {
 			if !entry.IsDir() {
 				t.Error("expected directory entry to report as directory")
 			}
-			
+
 			info, err := entry.Info()
 			if err != nil {
 				t.Fatalf("unexpected error getting dir info: %v", err)
 			}
-			
+
 			if !info.IsDir() {
 				t.Error("expected directory info to report as directory")
 			}

@@ -58,7 +58,7 @@ func (mfs *MemoryFS) ReadFile(name string) ([]byte, error) {
 func (mfs *MemoryFS) ReadDir(name string) iter.Seq2[DirEntry, error] {
 	return func(yield func(DirEntry, error) bool) {
 		cleanName := path.Clean(name)
-		
+
 		// Check if directory exists
 		if cleanName != "." && !mfs.dirs[cleanName] {
 			yield(nil, fmt.Errorf("directory not found: %s", name))
@@ -73,7 +73,7 @@ func (mfs *MemoryFS) ReadDir(name string) iter.Seq2[DirEntry, error] {
 
 		// Collect direct children
 		seen := make(map[string]bool)
-		
+
 		// Check files
 		for filePath := range mfs.files {
 			if strings.HasPrefix(filePath, prefix) || (cleanName == "." && !strings.Contains(filePath, "/")) {
@@ -91,7 +91,7 @@ func (mfs *MemoryFS) ReadDir(name string) iter.Seq2[DirEntry, error] {
 				}
 			}
 		}
-		
+
 		// Check directories
 		for dirPath := range mfs.dirs {
 			if strings.HasPrefix(dirPath, prefix) || (cleanName == "." && !strings.Contains(dirPath, "/")) {
@@ -111,13 +111,13 @@ func (mfs *MemoryFS) ReadDir(name string) iter.Seq2[DirEntry, error] {
 		}
 
 		sort.Strings(entries)
-		
+
 		for _, entry := range entries {
 			fullPath := entry
 			if cleanName != "." {
 				fullPath = path.Join(cleanName, entry)
 			}
-			
+
 			isDir := mfs.dirs[fullPath]
 			if !isDir {
 				_, isFile := mfs.files[fullPath]
@@ -126,14 +126,14 @@ func (mfs *MemoryFS) ReadDir(name string) iter.Seq2[DirEntry, error] {
 					isDir = true
 				}
 			}
-			
+
 			dirEntry := &memoryDirEntry{
-				name:  entry,
-				isDir: isDir,
-				mfs:   mfs,
+				name:     entry,
+				isDir:    isDir,
+				mfs:      mfs,
 				fullPath: fullPath,
 			}
-			
+
 			if !yield(dirEntry, nil) {
 				return
 			}
@@ -143,7 +143,7 @@ func (mfs *MemoryFS) ReadDir(name string) iter.Seq2[DirEntry, error] {
 
 func (mfs *MemoryFS) Walk(root string, fn WalkFunc) error {
 	cleanRoot := path.Clean(root)
-	
+
 	var walkDir func(string) error
 	walkDir = func(dir string) error {
 		// Process current directory
@@ -166,7 +166,7 @@ func (mfs *MemoryFS) Walk(root string, fn WalkFunc) error {
 				isDir:   false,
 			}
 		}
-		
+
 		if fileInfo != nil {
 			if err := fn(dir, fileInfo, nil); err != nil {
 				if err == SkipDir && fileInfo.IsDir() {
@@ -175,7 +175,7 @@ func (mfs *MemoryFS) Walk(root string, fn WalkFunc) error {
 				return err
 			}
 		}
-		
+
 		// If it's a directory, walk its children
 		if isDir {
 			for entry, _ := range mfs.ReadDir(dir) {
@@ -187,10 +187,10 @@ func (mfs *MemoryFS) Walk(root string, fn WalkFunc) error {
 				}
 			}
 		}
-		
+
 		return nil
 	}
-	
+
 	return walkDir(cleanRoot)
 }
 
@@ -210,16 +210,16 @@ func (mfs *MemoryFS) Rel(basepath, targpath string) (string, error) {
 	// Simple implementation - for more complex cases, this would need enhancement
 	base := path.Clean(basepath)
 	target := path.Clean(targpath)
-	
+
 	if base == target {
 		return ".", nil
 	}
-	
+
 	// If target starts with base, return relative path
 	if strings.HasPrefix(target, base+"/") {
 		return strings.TrimPrefix(target, base+"/"), nil
 	}
-	
+
 	// For other cases, return the target as-is (simplified)
 	return target, nil
 }
@@ -257,12 +257,12 @@ func (e *memoryDirEntry) Info() (FileInfo, error) {
 			isDir:   true,
 		}, nil
 	}
-	
+
 	content, exists := e.mfs.files[e.fullPath]
 	if !exists {
 		return nil, fmt.Errorf("file not found: %s", e.fullPath)
 	}
-	
+
 	return &memoryFileInfo{
 		name:    e.name,
 		size:    int64(len(content)),

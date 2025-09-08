@@ -72,9 +72,9 @@ func runEnvExtraction(sourcePath string) error {
 
 	for _, service := range services {
 		fmt.Printf("=== %s ===\n", service.Name)
-		
+
 		envVars := make(map[string]types.EnvResult) // Deduplicate by variable name
-		
+
 		if service.BuildPath != "" {
 			// Walk service directory recursively, avoiding other service paths
 			err := filesystem.Walk(service.BuildPath, func(path string, info filesystems.FileInfo, err error) error {
@@ -104,7 +104,7 @@ func runEnvExtraction(sourcePath string) error {
 				}
 				return nil
 			})
-			
+
 			if err != nil {
 				fmt.Printf("  Error walking directory: %v\n", err)
 			}

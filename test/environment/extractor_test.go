@@ -30,7 +30,7 @@ func TestExtractor_DockerCompose(t *testing.T) {
 	dockerComposeExtractor := extractors.NewDockerComposeExtractor()
 	canHandle := dockerComposeExtractor.CanHandle("docker-compose.yml")
 	t.Logf("Can handle docker-compose.yml: %t", canHandle)
-	
+
 	// Test direct extraction
 	directResults, err := dockerComposeExtractor.Extract(ctx, "docker-compose.yml", []byte(composeContent))
 	if err != nil {
@@ -38,7 +38,7 @@ func TestExtractor_DockerCompose(t *testing.T) {
 	} else {
 		t.Logf("Direct extraction found %d vars", len(directResults))
 	}
-	
+
 	results := []types.EnvResult{}
 	for result := range extractor.Extract(ctx, "docker-compose.yml", []byte(composeContent)) {
 		t.Logf("Found env var: %s=%s", result.VarName, result.Value)
